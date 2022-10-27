@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace Desgram.DAL.Migrations
+namespace Desgram.Api.Migrations
 {
     public partial class Initial : Migration
     {

@@ -1,7 +1,9 @@
 ﻿using AutoMapper;
 using Desgram.Api.Models;
+using Desgram.Api.Services.Interfaces;
 using Desgram.DAL;
 using Desgram.DAL.Entities;
+using Desgram.SharedKernel;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Desgram.Api.Controllers
@@ -10,20 +12,33 @@ namespace Desgram.Api.Controllers
     [Route("api/[controller]/[action]")]
     public class UserController : ControllerBase
     {
-        private readonly ApplicationContext _context;
-        private readonly IMapper _mapper;
+        private readonly IUserService _userService;
+        private readonly IFileService _imageService;
 
-        public UserController(ApplicationContext context,IMapper mapper)
+        public UserController(IUserService userService,IFileService imageService)
         {
-            _context = context;
-            _mapper = mapper;
+            _userService = userService;
+            _imageService = imageService;
         }
 
         [HttpPost]
-        public IActionResult CreateUser(CreateUserDTO createUserDto)
+        public async Task<IActionResult> CreateUser(CreateUserDTO createUserDto)
         {
-            var user = _mapper.Map<User>(createUserDto);
-            return Ok(user);
+            await _userService.CreateUserAsync(createUserDto);
+            return Ok();
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetUsers()
+        {
+            return Ok( await _userService.GetUsersAsync());
+        }
+
+
+        [HttpPost]
+        public IActionResult UploadImage(IFormFile file)
+        {
+            return Ok(_imageService.SaveImage(file));
         }
     }
 }

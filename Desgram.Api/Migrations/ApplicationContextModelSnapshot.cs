@@ -8,7 +8,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Desgram.DAL.Migrations
+namespace Desgram.Api.Migrations
 {
     [DbContext(typeof(ApplicationContext))]
     partial class ApplicationContextModelSnapshot : ModelSnapshot
@@ -44,6 +44,8 @@ namespace Desgram.DAL.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasAlternateKey("Name", "Email");
 
                     b.ToTable("Users");
                 });

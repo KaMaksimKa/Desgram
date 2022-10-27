@@ -1,5 +1,6 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
+using Desgram.SharedKernel;
 
 namespace SharedKernel
 {
@@ -9,14 +10,9 @@ namespace SharedKernel
         {
             using var sha = SHA256.Create();
             var data = sha.ComputeHash(Encoding.UTF8.GetBytes(input));
-            var sb = new StringBuilder();
 
-            foreach (var b in data)
-            {
-                sb.Append(b.ToString("x2"));
-            }
-            
-            return sb.ToString();
+            return BytesHelper.ToStringH2(data);
+
         }
 
         public static bool Verify(string input, string hash)
@@ -25,5 +21,7 @@ namespace SharedKernel
             var comparer = StringComparer.OrdinalIgnoreCase;
             return comparer.Compare(hashInput, hash) == 0;
         }
+
+        
     }
 }

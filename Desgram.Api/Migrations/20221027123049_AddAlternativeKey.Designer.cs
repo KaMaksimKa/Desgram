@@ -9,11 +9,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Desgram.DAL.Migrations
+namespace Desgram.Api.Migrations
 {
     [DbContext(typeof(ApplicationContext))]
-    [Migration("20221026233036_Initial")]
-    partial class Initial
+    [Migration("20221027123049_AddAlternativeKey")]
+    partial class AddAlternativeKey
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -46,6 +46,8 @@ namespace Desgram.DAL.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasAlternateKey("Name", "Email");
 
                     b.ToTable("Users");
                 });
