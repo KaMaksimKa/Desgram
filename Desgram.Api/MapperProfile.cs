@@ -9,11 +9,10 @@ namespace Desgram.Api
     {
         public MapperProfile()
         {
-            CreateMap<CreateUserDTO, User>()
+            CreateMap<CreateUserModel, User>()
                 .ForMember(d => d.Id, m => m.MapFrom(s => Guid.NewGuid()))
-                .ForMember(d => d.BirthDate, m => m.MapFrom(s => s.BirthDate.UtcDateTime))
                 .ForMember(d => d.PasswordHash, m => m.MapFrom(s => HashHelper.GetHash(s.Password)));
-            CreateMap<User, UserDTO>();
+            CreateMap<User, UserModel>();
         }
     }
 }

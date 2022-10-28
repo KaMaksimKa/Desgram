@@ -1,15 +1,10 @@
-﻿using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using AutoMapper;
-using Desgram.Api.Config;
+﻿using AutoMapper;
 using Desgram.Api.Models;
 using Desgram.Api.Services.Interfaces;
 using Desgram.DAL;
 using Desgram.DAL.Entities;
+using Desgram.SharedKernel.Exceptions;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
-using SharedKernel;
 
 namespace Desgram.Api.Services
 {
@@ -17,65 +12,63 @@ namespace Desgram.Api.Services
     {
         private readonly IMapper _mapper;
         private readonly ApplicationContext _context;
-        private readonly AuthConfig _authConfig;
 
-        public UserService(IMapper mapper,ApplicationContext context,IOptions<AuthConfig> options)
+        public UserService(IMapper mapper,ApplicationContext context)
         {
             _mapper = mapper;
             _context = context;
-            _authConfig = options.Value;
         }
 
-        public async Task CreateUserAsync(CreateUserDTO createUserDto)
+        public async Task CreateUserAsync(CreateUserModel createUserDto)
         {
             var user = _mapper.Map<User>(createUserDto);
             await _context.Users.AddAsync(user);
             await _context.SaveChangesAsync();
         }
 
-        public async Task<List<UserDTO>> GetUsersAsync()
+        public async Task<List<UserModel>> GetUsersAsync()
         {
             var users = await _context.Users.ToListAsync();
-            return users.Select(u => _mapper.Map<UserDTO>(u)).ToList();
+            return users.Select(u => _mapper.Map<UserModel>(u)).ToList();
         }
 
-
-
-        public async Task<TokenModel> GetToken(string login, string password)
+        public async Task<User> GetUserByEmailAsync(string email)
         {
-            var user = await GetUserByCredention(login, password);
-            var claims = new List<Claim>()
-            {
-                new Claim("displayName",user.Name),
-            };
-
-            var jwt = JwtSecurityToken(
-                issuer:_authConfig.Issuer,
-                audience:_authConfig.Audience,
-                notBefore:DateTime.Now,
-                claims:claims,
-                expires:DateTime.Now.AddMinutes(_authConfig.LifeTime),
-                singingCredentials: new SigningCredentials(_authConfig.Key,SecurityAlgorithms.HmacSha256)
-            );
-
-
-
-        }
-
-        private async Task<User> GetUserByCredention(string login, string password)
-        {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == login);
+            var user =await _context.Users
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
             if (user == null)
             {
-                throw new Exception("user in not found");
-            }
-
-            if (!HashHelper.Verify(login, user.PasswordHash))
-            {
-                throw new Exception("user in not found");
+                throw new CustomException("user not found");
             }
 
             return user;
         }
+
+        public async Task<User> GetUserNameAsync(string name)
+        {
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Name.ToLower() == name.ToLower());
+            if (user == null)
+            {
+                throw new CustomException("user not found");
+            }
+
+            return user;
+        }
+
+        public async Task<User> GetUserByIdAsync(Guid id)
+        {
+            
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
+
+            if (user == null)
+            {
+                throw new CustomException("user not found");
+            }
+
+            return user;
+        }
+
+
     }
 }

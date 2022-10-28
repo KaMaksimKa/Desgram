@@ -1,4 +1,7 @@
-﻿namespace Desgram.Api.Config
+﻿using System.Text;
+using Microsoft.IdentityModel.Tokens;
+
+namespace Desgram.Api.Config
 {
     public class AuthConfig
     {
@@ -7,7 +10,7 @@
         public string Audience { get; set; } = string.Empty;
         public string Key { get; set; } = string.Empty;
         public int LifeTime { get; set; }
-        /*public SymmetricSecurityKey*/
+        public SymmetricSecurityKey SymmetricSecurityKey => new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Key));
 
     }
 }

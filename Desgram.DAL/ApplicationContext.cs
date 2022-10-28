@@ -12,6 +12,11 @@ namespace Desgram.DAL
     {
 
         public DbSet<User> Users { get; init; } = null!;
+
+        public DbSet<Image> Images { get; init; } = null!;
+
+        public DbSet<UserProfile> Profiles { get; init; } = null!;
+
         public ApplicationContext(DbContextOptions<ApplicationContext> options) :base(options) 
         {
             
@@ -19,7 +24,8 @@ namespace Desgram.DAL
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<User>().HasAlternateKey(u => new {u.Name,u.Email});
+            modelBuilder.Entity<User>().HasIndex(u => u.Name).IsUnique();
+            modelBuilder.Entity<User>().HasIndex(u => u.Email).IsUnique();
         }
     }
 }

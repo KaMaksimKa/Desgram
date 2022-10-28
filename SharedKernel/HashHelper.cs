@@ -11,7 +11,8 @@ namespace SharedKernel
             using var sha = SHA256.Create();
             var data = sha.ComputeHash(Encoding.UTF8.GetBytes(input));
 
-            return BytesHelper.ToStringH2(data);
+            var result = BytesHelper.ToStringH2(data);
+            return result;
 
         }
 

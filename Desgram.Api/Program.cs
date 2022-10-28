@@ -22,7 +22,7 @@ builder.Services.AddSwaggerGen(options =>
 {
     options.AddSecurityDefinition(JwtBearerDefaults.AuthenticationScheme,new OpenApiSecurityScheme()
     {
-        Description = "",
+        Description = "¬ведите Access token",
         Name = "Authorization",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.ApiKey,
@@ -49,8 +49,6 @@ builder.Services.AddSwaggerGen(options =>
 } );
 
 var connectionString = builder.Configuration.GetConnectionString(Constants.ConnectionStringNames.PostgresSql);
-
-
 builder.Services.AddDbContext<ApplicationContext>(optionsBuilder =>
 {
     optionsBuilder.UseNpgsql(connectionString,contextOptionsBuilder =>
@@ -63,34 +61,31 @@ builder.Services.AddAutoMapper(typeof(MapperProfile).Assembly);
 
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IFileService,FileService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-}).AddJwtBearer(options =>
-{
-    options.RequireHttpsMetadata = false;
-    options.TokenValidationParameters = new TokenValidationParameters()
-    { 
-        ValidateIssuer = true,
-        ValidIssuer = authConfig.Issuer,
-        ValidateAudience = true,
-        ValidAudience = authConfig.Audience,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ClockSkew = TimeSpan.Zero,
-        IssuerSigningKey = authConfig.Key
-
-    };
-} );
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
+    {
+        options.RequireHttpsMetadata = false;
+        options.TokenValidationParameters = new TokenValidationParameters()
+        { 
+            ValidateIssuer = true,
+            ValidIssuer = authConfig.Issuer,
+            ValidateAudience = true,
+            ValidAudience = authConfig.Audience,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = authConfig.SymmetricSecurityKey,
+            ClockSkew = TimeSpan.Zero
+        };
+    } );
 
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("ValidAccessToken", policyBuilder =>
     {
         policyBuilder.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme);
-
+        policyBuilder.RequireAuthenticatedUser();
     } );
 });
 
