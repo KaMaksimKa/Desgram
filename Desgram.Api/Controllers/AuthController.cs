@@ -21,6 +21,7 @@ namespace Desgram.Api.Controllers
             return await _authService.GetTokenByCredentials(model.UserName, model.Password);
         }
 
+        [HttpPost]
         public async Task<TokenModel> RefreshToken(RefreshTokenRequestModel model)
         {
             return await _authService.GetTokenByRefreshToken(model.RefreshToken);

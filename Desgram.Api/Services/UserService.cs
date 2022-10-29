@@ -1,4 +1,6 @@
-﻿using AutoMapper;
+﻿using System.Globalization;
+using System.Security.Claims;
+using AutoMapper;
 using Desgram.Api.Models;
 using Desgram.Api.Services.Interfaces;
 using Desgram.DAL;
@@ -11,64 +13,35 @@ namespace Desgram.Api.Services
     public class UserService:IUserService
     {
         private readonly IMapper _mapper;
-        private readonly ApplicationContext _context;
-
-        public UserService(IMapper mapper,ApplicationContext context)
+        private readonly IUserManager _userManager;
+   
+        public UserService(IMapper mapper,IUserManager userManager)
         {
             _mapper = mapper;
-            _context = context;
+            _userManager = userManager;
         }
 
         public async Task CreateUserAsync(CreateUserModel createUserDto)
         {
             var user = _mapper.Map<User>(createUserDto);
-            await _context.Users.AddAsync(user);
-            await _context.SaveChangesAsync();
+            await _userManager.CreateAsync(user);
         }
 
-        public async Task<List<UserModel>> GetUsersAsync()
+        public async Task<List<User>> GetUsersAsync()
         {
-            var users = await _context.Users.ToListAsync();
-            return users.Select(u => _mapper.Map<UserModel>(u)).ToList();
+            var users = (await _userManager.GetAll()).ToList();
+            return users;
         }
 
-        public async Task<User> GetUserByEmailAsync(string email)
+        public Task<User> GetUserByClaimsPrincipalAsync(ClaimsPrincipal principal)
         {
-            var user =await _context.Users
-                .FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
-            if (user == null)
+            var userIdString = principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdString, out var userGuid))
             {
-                throw new CustomException("user not found");
+                throw new CustomException("you are not authorize");
             }
 
-            return user;
+            return _userManager.GetByIdAsync(userGuid);
         }
-
-        public async Task<User> GetUserNameAsync(string name)
-        {
-            var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Name.ToLower() == name.ToLower());
-            if (user == null)
-            {
-                throw new CustomException("user not found");
-            }
-
-            return user;
-        }
-
-        public async Task<User> GetUserByIdAsync(Guid id)
-        {
-            
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
-
-            if (user == null)
-            {
-                throw new CustomException("user not found");
-            }
-
-            return user;
-        }
-
-
     }
 }

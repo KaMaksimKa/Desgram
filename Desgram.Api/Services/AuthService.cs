@@ -13,18 +13,18 @@ namespace Desgram.Api.Services
 {
     public class AuthService:IAuthService
     {
-        private readonly IUserService _userService;
+        private readonly IUserManager _userManager;
         private readonly AuthConfig _authConfig;
 
-        public AuthService(IUserService userService, IOptions<AuthConfig> options)
+        public AuthService(IUserManager userManager, IOptions<AuthConfig> options)
         {
-            _userService = userService;
+            _userManager = userManager;
             _authConfig = options.Value;
         }
 
         public async Task<TokenModel> GetTokenByCredentials(string name, string password)
         {
-            var user = await _userService.GetUserNameAsync(name);
+            var user = await _userManager.GetByNameAsync(name);
             if (!VerifyPassword(user, password))
             {
                 throw new CustomException("password is not correct");
@@ -33,7 +33,11 @@ namespace Desgram.Api.Services
             var accessToken = GetAccessTokenByUser(user);
             var refreshToken = GetRefreshTokenByUser(user);
 
-            return new TokenModel(accessToken, refreshToken);
+            return new TokenModel{
+                AccessToken = accessToken,
+                RefreshToken = refreshToken
+
+            };
         }
 
 
@@ -63,10 +67,13 @@ namespace Desgram.Api.Services
                 throw new CustomException("token is invalid");
             }
 
-            var user = await _userService.GetUserByIdAsync(guid);
+            var user = await _userManager.GetByIdAsync(guid);
 
 
-            return new TokenModel(GetAccessTokenByUser(user), GetRefreshTokenByUser(user));
+            return new TokenModel{
+                AccessToken = GetAccessTokenByUser(user),
+                RefreshToken = GetRefreshTokenByUser(user)
+            };
         }
 
         private string GetAccessTokenByUser(User user)

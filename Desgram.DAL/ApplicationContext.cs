@@ -12,10 +12,14 @@ namespace Desgram.DAL
     {
 
         public DbSet<User> Users { get; init; } = null!;
+        public DbSet<UserProfile> UserProfiles { get; init; } = null!;
+        public DbSet<Comment> Comments { get; init; } = null!;
+        public DbSet<ImageUserProfile> ImagesUserProfiles { get; init; } = null!;
+        public DbSet<ImagePublication> ImagesPublications { get; init; } = null!;
+        public DbSet<LikeComment> LikesComments { get; init; } = null!;
+        public DbSet<LikePublication> LikesPublications { get; init; } = null!;
+        public DbSet<Publication> Publications { get; init; } = null!;
 
-        public DbSet<Image> Images { get; init; } = null!;
-
-        public DbSet<UserProfile> Profiles { get; init; } = null!;
 
         public ApplicationContext(DbContextOptions<ApplicationContext> options) :base(options) 
         {

@@ -35,28 +35,23 @@ namespace Desgram.Api.Controllers
 
         [Authorize]
         [HttpGet]
-        public async Task<IActionResult> GetUser()
+        public async Task<UserModel> GetUser()
         {
-            var userIdString = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-            if (!Guid.TryParse(userIdString, out var userGuid))
-            {
-                throw new CustomException("you are not authorize");
-            }
-
-            var userModel = _mapper.Map<UserModel>(await _userService.GetUserByIdAsync(userGuid));
-            return Ok(userModel);
+            var userModel = _mapper.Map<UserModel>(await _userService.GetUserByClaimsPrincipalAsync(User));
+            return userModel;
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetUsers()
+        public async Task<List<UserModel>> GetUsers()
         {
-            return Ok(await _userService.GetUsersAsync());
+            var users = await _userService.GetUsersAsync();
+            return users.Select(u => _mapper.Map<UserModel>(u)).ToList();
         }
 
         [HttpPost]
-        public IActionResult UploadImage(IFormFile file)
+        public string UploadImage(IFormFile file)
         {
-            return Ok(_imageService.SaveImage(file));
+            return _imageService.SaveImage(file);
         }
     }
 }

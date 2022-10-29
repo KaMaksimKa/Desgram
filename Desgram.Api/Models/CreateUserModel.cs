@@ -23,14 +23,5 @@ namespace Desgram.Api.Models
         public DateTimeOffset BirthDate { get; init; }
 
 
-        public CreateUserModel(string name, string email, string password, string retryPassword, DateTimeOffset birthDate)
-        {
-            Name = name;
-            Email = email;
-            Password = password;
-            RetryPassword = retryPassword;
-            BirthDate = birthDate;
-        }
-
     }
 }
