@@ -1,11 +1,6 @@
-﻿using System.Security.Claims;
-using AutoMapper;
+﻿using Desgram.Api.Infrastructure;
 using Desgram.Api.Models;
 using Desgram.Api.Services.Interfaces;
-using Desgram.DAL;
-using Desgram.DAL.Entities;
-using Desgram.SharedKernel;
-using Desgram.SharedKernel.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,14 +11,10 @@ namespace Desgram.Api.Controllers
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;
-        private readonly IFileService _imageService;
-        private readonly IMapper _mapper;
 
-        public UserController(IUserService userService,IFileService imageService,IMapper mapper)
+        public UserController(IUserService userService)
         {
             _userService = userService;
-            _imageService = imageService;
-            _mapper = mapper;
         }
 
         [HttpPost]
@@ -35,23 +26,38 @@ namespace Desgram.Api.Controllers
 
         [Authorize]
         [HttpGet]
-        public async Task<UserModel> GetUser()
+        public async Task<UserModel> GetCurrentUser()
         {
-            var userModel = _mapper.Map<UserModel>(await _userService.GetUserByClaimsPrincipalAsync(User));
-            return userModel;
+            var userId = UserHelper.GetUserIdByClaimsPrincipal(User);
+
+            return await _userService.GetUserByIdAsync(userId);
         }
 
         [HttpGet]
         public async Task<List<UserModel>> GetUsers()
         {
-            var users = await _userService.GetUsersAsync();
-            return users.Select(u => _mapper.Map<UserModel>(u)).ToList();
+            return await _userService.GetUsersAsync();
         }
 
+        [Authorize]
         [HttpPost]
-        public string UploadImage(IFormFile file)
+        public async Task AddAvatar(MetadataModel model)
         {
-            return _imageService.SaveImage(file);
+            var userId = UserHelper.GetUserIdByClaimsPrincipal(User);
+
+            await _userService.AddAvatarAsync(model,userId);
         }
+
+        [Authorize]
+        [HttpGet]
+        public async Task<FileResult> GetAvatar()
+        {
+            var userId = UserHelper.GetUserIdByClaimsPrincipal(User);
+
+            var attach =  await _userService.GetAvatarAsync(userId);
+
+            return File(await System.IO.File.ReadAllBytesAsync(attach.FilePath) ,attach.MimeType);
+        }
+
     }
 }

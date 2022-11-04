@@ -1,18 +1,17 @@
 ﻿using Desgram.Api.Models;
-using Desgram.DAL.Entities;
 
 namespace Desgram.Api.Services.Interfaces
 {
     public interface IPublicationService
     {
-        public Task CreatePublicationAsync(CreatePublicationModel model,User user);
+        public Task CreatePublicationAsync(CreatePublicationModel model, Guid userId);
         public Task<List<PublicationModel>> GetAllPublicationsAsync();
-        public Task AddComment(CreateCommentModel model, Guid publicationId, User user);
-        public Task DeleteComment(Guid commentId, User user);
-        public Task AddLike(Guid publicationId, User user);
-        public Task DeleteLike(Guid publicationId, User user);
-        public Task AddLikeComment(Guid commentId, User user);
-        public Task DeleteLikeComment(Guid commentId, User user);
-        public Task GetComments(Guid publicationId);
+        public Task AddComment(CreateCommentModel model, Guid userId);
+        public Task DeleteComment(Guid commentId, Guid userId);
+        public Task AddLike(Guid publicationId, Guid userId);
+        public Task DeleteLike(Guid publicationId, Guid userId);
+        public Task AddLikeComment(Guid commentId, Guid userId);
+        public Task DeleteLikeComment(Guid commentId, Guid userId);
+        public Task<List<CommentModel>> GetComments(Guid publicationId);
     }
 }

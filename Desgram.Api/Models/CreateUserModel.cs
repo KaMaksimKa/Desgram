@@ -19,8 +19,6 @@ namespace Desgram.Api.Models
         [Compare(nameof(Password))]
         public string RetryPassword { get; init; }
 
-        [Required]
-        public DateTimeOffset BirthDate { get; init; }
 
 
     }

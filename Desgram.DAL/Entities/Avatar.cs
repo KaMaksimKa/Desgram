@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace Desgram.DAL.Entities
 {
-    public class ImageUserProfile:Image
+    public class Avatar:Attach
     {
-        public Guid UserProfileId { get; set; }
-        public UserProfile UserProfile { get; set; }
+        public Guid UserId { get; set; }
+        public User? User { get; set; }
     }
 }

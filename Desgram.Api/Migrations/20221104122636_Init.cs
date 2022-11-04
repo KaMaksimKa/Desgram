@@ -16,11 +16,54 @@ namespace Desgram.Api.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Name = table.Column<string>(type: "text", nullable: false),
                     Email = table.Column<string>(type: "text", nullable: false),
-                    PasswordHash = table.Column<string>(type: "text", nullable: false)
+                    PasswordHash = table.Column<string>(type: "text", nullable: false),
+                    FullName = table.Column<string>(type: "text", nullable: true),
+                    Biography = table.Column<string>(type: "text", nullable: true),
+                    BirthDate = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Users", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Images",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    MimeType = table.Column<string>(type: "text", nullable: false),
+                    Path = table.Column<string>(type: "text", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    OwnerId = table.Column<Guid>(type: "uuid", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Images", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Images_Users_OwnerId",
+                        column: x => x.OwnerId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Likes",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Likes", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Likes_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -44,20 +87,23 @@ namespace Desgram.Api.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "UserProfiles",
+                name: "Avatars",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    FullName = table.Column<string>(type: "text", nullable: true),
-                    Biography = table.Column<string>(type: "text", nullable: true),
-                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
-                    BirthDate = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_UserProfiles", x => x.Id);
+                    table.PrimaryKey("PK_Avatars", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_UserProfiles_Users_UserId",
+                        name: "FK_Avatars_Images_Id",
+                        column: x => x.Id,
+                        principalTable: "Images",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Avatars_Users_UserId",
                         column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "Id",
@@ -96,104 +142,78 @@ namespace Desgram.Api.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    PublicationId = table.Column<Guid>(type: "uuid", nullable: false),
-                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Path = table.Column<string>(type: "text", nullable: false),
-                    CreatedDate = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                    PublicationId = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_ImagesPublications", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ImagesPublications_Images_Id",
+                        column: x => x.Id,
+                        principalTable: "Images",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_ImagesPublications_Publications_PublicationId",
                         column: x => x.PublicationId,
                         principalTable: "Publications",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_ImagesPublications_Users_UserId",
-                        column: x => x.UserId,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
-                name: "LikesPublications",
+                name: "LikePublication",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    PublicationId = table.Column<Guid>(type: "uuid", nullable: false),
-                    UserId = table.Column<Guid>(type: "uuid", nullable: false)
+                    PublicationId = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_LikesPublications", x => x.Id);
+                    table.PrimaryKey("PK_LikePublication", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_LikesPublications_Publications_PublicationId",
+                        name: "FK_LikePublication_Likes_Id",
+                        column: x => x.Id,
+                        principalTable: "Likes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_LikePublication_Publications_PublicationId",
                         column: x => x.PublicationId,
                         principalTable: "Publications",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_LikesPublications_Users_UserId",
-                        column: x => x.UserId,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
-                name: "ImagesUserProfiles",
+                name: "LikeComment",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    UserProfileId = table.Column<Guid>(type: "uuid", nullable: false),
-                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Path = table.Column<string>(type: "text", nullable: false),
-                    CreatedDate = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                    CommentId = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ImagesUserProfiles", x => x.Id);
+                    table.PrimaryKey("PK_LikeComment", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_ImagesUserProfiles_UserProfiles_UserProfileId",
-                        column: x => x.UserProfileId,
-                        principalTable: "UserProfiles",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_ImagesUserProfiles_Users_UserId",
-                        column: x => x.UserId,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "LikesComments",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    CommentId = table.Column<Guid>(type: "uuid", nullable: false),
-                    UserId = table.Column<Guid>(type: "uuid", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_LikesComments", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_LikesComments_Comments_CommentId",
+                        name: "FK_LikeComment_Comments_CommentId",
                         column: x => x.CommentId,
                         principalTable: "Comments",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_LikesComments_Users_UserId",
-                        column: x => x.UserId,
-                        principalTable: "Users",
+                        name: "FK_LikeComment_Likes_Id",
+                        column: x => x.Id,
+                        principalTable: "Likes",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Avatars_UserId",
+                table: "Avatars",
+                column: "UserId",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Comments_PublicationId",
@@ -206,54 +226,33 @@ namespace Desgram.Api.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Images_OwnerId",
+                table: "Images",
+                column: "OwnerId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ImagesPublications_PublicationId",
                 table: "ImagesPublications",
                 column: "PublicationId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ImagesPublications_UserId",
-                table: "ImagesPublications",
-                column: "UserId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ImagesUserProfiles_UserId",
-                table: "ImagesUserProfiles",
-                column: "UserId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ImagesUserProfiles_UserProfileId",
-                table: "ImagesUserProfiles",
-                column: "UserProfileId",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_LikesComments_CommentId",
-                table: "LikesComments",
+                name: "IX_LikeComment_CommentId",
+                table: "LikeComment",
                 column: "CommentId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_LikesComments_UserId",
-                table: "LikesComments",
-                column: "UserId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_LikesPublications_PublicationId",
-                table: "LikesPublications",
+                name: "IX_LikePublication_PublicationId",
+                table: "LikePublication",
                 column: "PublicationId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_LikesPublications_UserId",
-                table: "LikesPublications",
+                name: "IX_Likes_UserId",
+                table: "Likes",
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Publications_UserId",
                 table: "Publications",
-                column: "UserId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_UserProfiles_UserId",
-                table: "UserProfiles",
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
@@ -272,22 +271,25 @@ namespace Desgram.Api.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
+                name: "Avatars");
+
+            migrationBuilder.DropTable(
                 name: "ImagesPublications");
 
             migrationBuilder.DropTable(
-                name: "ImagesUserProfiles");
+                name: "LikeComment");
 
             migrationBuilder.DropTable(
-                name: "LikesComments");
+                name: "LikePublication");
 
             migrationBuilder.DropTable(
-                name: "LikesPublications");
-
-            migrationBuilder.DropTable(
-                name: "UserProfiles");
+                name: "Images");
 
             migrationBuilder.DropTable(
                 name: "Comments");
+
+            migrationBuilder.DropTable(
+                name: "Likes");
 
             migrationBuilder.DropTable(
                 name: "Publications");

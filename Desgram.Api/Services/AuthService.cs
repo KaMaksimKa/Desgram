@@ -4,27 +4,30 @@ using Desgram.Api.Services.Interfaces;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using Desgram.DAL;
 using Desgram.DAL.Entities;
 using Desgram.SharedKernel.Exceptions;
 using SharedKernel;
 using Microsoft.Extensions.Options;
+using Microsoft.EntityFrameworkCore;
 
 namespace Desgram.Api.Services
 {
     public class AuthService:IAuthService
     {
-        private readonly IUserManager _userManager;
+        private readonly ApplicationContext _context;
+
         private readonly AuthConfig _authConfig;
 
-        public AuthService(IUserManager userManager, IOptions<AuthConfig> options)
+        public AuthService(ApplicationContext context, IOptions<AuthConfig> options)
         {
-            _userManager = userManager;
+            _context = context;
             _authConfig = options.Value;
         }
 
-        public async Task<TokenModel> GetTokenByCredentials(string name, string password)
+        public async Task<TokenModel> GetTokenByCredentials(string login, string password)
         {
-            var user = await _userManager.GetByNameAsync(name);
+            var user = await GetByNameAsync(login);
             if (!VerifyPassword(user, password))
             {
                 throw new CustomException("password is not correct");
@@ -67,7 +70,7 @@ namespace Desgram.Api.Services
                 throw new CustomException("token is invalid");
             }
 
-            var user = await _userManager.GetByIdAsync(guid);
+            var user = await GetByIdAsync(guid);
 
 
             return new TokenModel{
@@ -117,6 +120,30 @@ namespace Desgram.Api.Services
         private bool VerifyPassword(User user, string password)
         {
             return HashHelper.Verify(password, user.PasswordHash);
+        }
+
+        private async Task<User> GetByNameAsync(string name)
+        {
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Name.ToLower() == name.ToLower());
+            if (user == null)
+            {
+                throw new CustomException("user not found");
+            }
+            return user;
+        }
+
+        private async Task<User> GetByIdAsync(Guid id)
+        {
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
+
+            if (user == null)
+            {
+                throw new CustomException("user not found");
+            }
+
+            return user;
         }
     }
 }

@@ -1,15 +1,65 @@
 ﻿using Desgram.Api.Services.Interfaces;
-using System.IO;
-using Desgram.SharedKernel;
-using System.Security.Cryptography;
+using Desgram.Api.Models;
+using Desgram.SharedKernel.Exceptions;
 
 namespace Desgram.Api.Services
 {
-    public class FileService:IFileService
+    public class AttachService:IAttachService
     {
-        private readonly string _defaultPathImage = $"Data/Images";
+        private readonly string _defaultPathImage = $"attaches";
 
-        public string SaveImage(IFormFile file)
+
+        public async Task<MetadataModel> SaveToTempAsync(IFormFile file)
+        {
+            var metadata = new MetadataModel()
+            {
+                Id = Guid.NewGuid(),
+                MimeType = file.ContentType,
+                Name = file.Name,
+            };
+
+            var path = Path.Combine(Path.GetTempPath(), "Desgram",_defaultPathImage,metadata.Id.ToString());
+
+            var fileInfo = new FileInfo(path);
+
+            if (fileInfo.Directory is { Exists: false })
+            {
+                fileInfo.Directory.Create();
+            }
+
+            using (var fileStream = new FileStream(path,FileMode.Create))
+            {
+                await file.CopyToAsync(fileStream);
+            }
+
+            return metadata;
+        }
+
+        public string MoveFromTempToAttach(MetadataModel model)
+        {
+            var pathTemp =  Path.Combine(Path.GetTempPath(), "Desgram", _defaultPathImage, model.Id.ToString());
+            var fileInfoTemp = new FileInfo(pathTemp);
+
+            if (!fileInfoTemp.Exists)
+            {
+                throw new CustomException("file not found");
+            }
+
+            var pathAttach = Path.Combine(Directory.GetCurrentDirectory(),_defaultPathImage,model.Id.ToString());
+            var fileInfoAttach = new FileInfo(pathAttach);
+
+            if (fileInfoAttach.Directory is { Exists: false })
+            {
+                fileInfoAttach.Directory.Create();
+            }
+
+            File.Copy(pathTemp, pathAttach, true);
+
+            return pathAttach;
+        }
+
+
+        /*public string SaveImage(IFormFile file)
         {
             var path = GetPath(file);
 
@@ -69,6 +119,8 @@ namespace Desgram.Api.Services
             var secondPart = stringData.Substring(random.Next(stringData.Length - 1), 2);
 
             return $"{firstPart}/{secondPart}";
-        }
+        }*/
+
+        
     }
 }

@@ -8,6 +8,6 @@ namespace Desgram.Api.Models
     {
         public string Description { get; set; } = String.Empty;
         [Required]
-        public List<IFormFile> Images { get; set; } 
+        public List<MetadataModel> MetadataModels { get; set; } 
     }
 }

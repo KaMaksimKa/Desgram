@@ -28,7 +28,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Data\Images\" />
+    <Folder Include="attaches\" />
   </ItemGroup>
 
 </Project>

@@ -5,6 +5,6 @@ namespace Desgram.Api.Models
     public class CreateCommentModel
     {
         public string Content { get; set; }
-        
+        public Guid PublicationId { get; set; }
     }
 }

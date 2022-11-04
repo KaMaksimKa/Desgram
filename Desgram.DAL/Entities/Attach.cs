@@ -1,0 +1,20 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Desgram.DAL.Entities
+{
+    public class Attach
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = null!;
+        public string MimeType { get; set; } = null!;
+        public string Path { get; set; } = null!;
+        public DateTimeOffset CreatedDate { get; set; }
+
+        public Guid OwnerId { get; set; }
+        public User? Owner { get; set; }
+    }
+}

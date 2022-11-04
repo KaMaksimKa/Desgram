@@ -12,10 +12,15 @@ namespace Desgram.Api
         {
             CreateMap<CreateUserModel, User>()
                 .ForMember(d => d.Id, m => m.MapFrom(s => Guid.NewGuid()))
-                .ForMember(d => d.PasswordHash, m => m.MapFrom(s => HashHelper.GetHash(s.Password)));
+                .ForMember(d => d.PasswordHash, m => m.MapFrom(s => HashHelper.GetHash(s.Password)))
+                .ForMember(d =>d.CreatedDate,m=> m.MapFrom(s=>DateTimeOffset.Now.UtcDateTime));
+            
             CreateMap<User, UserModel>();
+
             CreateMap<Publication, PublicationModel>()
                 .ForMember(d => d.ImageGuidList, m => m.MapFrom(s => s.ImagesPublication.Select(i => i.Id).ToList()));
+            
+            CreateMap<Comment, CommentModel>();
         }
     }
 }
