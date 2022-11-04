@@ -1,13 +1,20 @@
 ﻿using Desgram.Api.Services.Interfaces;
 using Desgram.Api.Models;
+using Desgram.DAL;
 using Desgram.SharedKernel.Exceptions;
+using Microsoft.EntityFrameworkCore;
 
 namespace Desgram.Api.Services
 {
     public class AttachService:IAttachService
     {
+        private readonly ApplicationContext _context;
         private readonly string _defaultPathImage = $"attaches";
 
+        public AttachService(ApplicationContext context)
+        {
+            _context = context;
+        }
 
         public async Task<MetadataModel> SaveToTempAsync(IFormFile file)
         {
@@ -58,69 +65,21 @@ namespace Desgram.Api.Services
             return pathAttach;
         }
 
-
-        /*public string SaveImage(IFormFile file)
+        public async Task<AttachModel> GetAttachById(Guid id)
         {
-            var path = GetPath(file);
-
-            SaveImage(path, file);
-           
-            return path;
-        }
-
-
-        private string GetPath(IFormFile file)
-        {
-            using var stream = file.OpenReadStream();
-            byte[] bytes = new byte[file.Length];
-            stream.Read(bytes, 0, (int)file.Length);
-            var path = Path.Combine(_defaultPathImage, GetDir(),
-                GetMd5Hash(bytes) + Path.GetExtension(file.FileName));
-            return path;
-        }
-
-        private void SaveImage(string path,IFormFile file)
-        {
-            using var stream = file.OpenReadStream();
-            byte[] bytes = new byte[file.Length];
-            stream.Read(bytes, 0, (int)file.Length);
-            if (Path.GetDirectoryName(path) is { } directory)
+            var attach =await _context.Attaches.FirstOrDefaultAsync(x => x.Id == id);
+            if (attach == null)
             {
-                Directory.CreateDirectory(directory);
+                throw new CustomException("attach not found");
             }
 
-            using var streamWriter = new FileStream(path, FileMode.OpenOrCreate);
-            streamWriter.Write(bytes);
+            return new AttachModel()
+            {
+                FilePath = attach.Path,
+                MimeType = attach.MimeType,
+                Name = attach.Name
+            };
         }
 
-        private string GetMd5Hash(byte[] bytes)
-        {
-            using var md5 = MD5.Create();
-            var data = md5.ComputeHash(bytes);
-
-            return BytesHelper.ToStringH2(data);
-        }
-
-        private string GetDir()
-        {
-            var random = new Random();
-
-            using var md5 = MD5.Create();
-            var data = md5.ComputeHash(BitConverter.GetBytes(DateTime.Now.Ticks));
-
-            var stringData = BytesHelper.ToStringH2(data);
-
-            var firstPart = stringData.Substring(random.Next(stringData.Length - 1), 2);
-
-            data = md5.ComputeHash(BitConverter.GetBytes(DateTime.Now.Ticks));
-
-            stringData = BytesHelper.ToStringH2(data);
-
-            var secondPart = stringData.Substring(random.Next(stringData.Length - 1), 2);
-
-            return $"{firstPart}/{secondPart}";
-        }*/
-
-        
     }
 }

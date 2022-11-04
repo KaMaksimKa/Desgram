@@ -10,6 +10,7 @@ using Desgram.SharedKernel.Exceptions;
 using SharedKernel;
 using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
+using Desgram.Api.Infrastructure;
 
 namespace Desgram.Api.Services
 {
@@ -33,16 +34,23 @@ namespace Desgram.Api.Services
                 throw new CustomException("password is not correct");
             }
 
-            var accessToken = GetAccessTokenByUser(user);
-            var refreshToken = GetRefreshTokenByUser(user);
+            var session =(await _context.UserSessions.AddAsync(new UserSession()
+            {
+                Id = Guid.NewGuid(),
+                User = user,
+                CreateDate = DateTimeOffset.Now.UtcDateTime,
+                IsActive = true,
+                RefreshTokenId = Guid.NewGuid(),
+            })).Entity;
+
+            await _context.SaveChangesAsync();
 
             return new TokenModel{
-                AccessToken = accessToken,
-                RefreshToken = refreshToken
+                AccessToken = GetAccessToken(session),
+                RefreshToken = GetRefreshToken(session)
 
             };
         }
-
 
         public async Task<TokenModel> GetTokenByRefreshToken(string refreshToken)
         {
@@ -64,31 +72,57 @@ namespace Desgram.Api.Services
                 throw new CustomException("token is invalid");
             }
 
-            if (principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value is not {} guidString || 
-                !Guid.TryParse(guidString, out var guid))
+            var guidString = principal.Claims.FirstOrDefault(c => c.Type == AppClaimTypes.RefreshTokenId)?.Value;
+            
+            if (!Guid.TryParse(guidString, out var guid))
             {
                 throw new CustomException("token is invalid");
             }
 
-            var user = await GetByIdAsync(guid);
+            var session = await GetSessionWithUserByRefreshAsync(guid);
+            if (!session.IsActive)
+            {
+                throw new CustomException("session is not active");
+            }
 
+            session.RefreshTokenId = Guid.NewGuid();
+            await _context.SaveChangesAsync();
 
             return new TokenModel{
-                AccessToken = GetAccessTokenByUser(user),
-                RefreshToken = GetRefreshTokenByUser(user)
+                AccessToken = GetAccessToken(session),
+                RefreshToken = GetRefreshToken(session)
             };
         }
 
-        private string GetAccessTokenByUser(User user)
+
+        private async Task<UserSession> GetSessionWithUserByRefreshAsync(Guid refreshTokenId)
         {
+            var session = await _context.UserSessions.Include(s=>s.User)
+                .FirstOrDefaultAsync(s => s.RefreshTokenId == refreshTokenId);
+
+            if (session == null)
+            {
+                throw new CustomException("session not found");
+            }
+
+            return session;
+        }
+
+        private string GetAccessToken(UserSession session)
+        {
+            if (session.User == null)
+            {
+                throw new CustomException("forgot include");
+            }
+
             var access = new JwtSecurityToken(
                 issuer: _authConfig.Issuer,
                 audience: _authConfig.Audience,
                 notBefore: DateTime.Now,
                 claims: new List<Claim>()
                 {
-                    new Claim(ClaimTypes.NameIdentifier,user.Id.ToString()),
-                    new Claim(ClaimTypes.Name,user.Name),
+                    new Claim(ClaimTypes.NameIdentifier,session.User.Id.ToString()),
+                    new Claim(AppClaimTypes.SessionId,session.Id.ToString())
                 },
                 expires: DateTime.Now.AddMinutes(_authConfig.LifeTime),
                 signingCredentials: new SigningCredentials(_authConfig.SymmetricSecurityKey, SecurityAlgorithms.HmacSha256)
@@ -99,13 +133,14 @@ namespace Desgram.Api.Services
             return encodedAccess;
 
         }
-        private string GetRefreshTokenByUser(User user)
+
+        private string GetRefreshToken(UserSession session)
         {
             var refresh = new JwtSecurityToken(
                 notBefore: DateTime.Now,
                 claims: new List<Claim>()
                 {
-                    new Claim(ClaimTypes.NameIdentifier,user.Id.ToString())
+                    new Claim(AppClaimTypes.RefreshTokenId,session.RefreshTokenId.ToString())
                 },
                 expires: DateTime.Now.AddHours(_authConfig.LifeTime),
                 signingCredentials: new SigningCredentials(_authConfig.SymmetricSecurityKey, SecurityAlgorithms.HmacSha256)

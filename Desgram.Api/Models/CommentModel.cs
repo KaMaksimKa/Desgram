@@ -6,7 +6,7 @@ namespace Desgram.Api.Models
     {
         public Guid Id { get; set; }
         public string Content { get; set; }
-        public Guid UserId { get; set; }
+        public string UserName { get; set; }
         public int AmountLikes { get; set; } = 0;
     }
 }

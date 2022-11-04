@@ -1,5 +1,6 @@
 using Desgram.Api;
 using Desgram.Api.Config;
+using Desgram.Api.Infrastructure;
 using Desgram.Api.Services;
 using Desgram.Api.Services.Interfaces;
 using Desgram.DAL;
@@ -113,6 +114,8 @@ app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseUserSessionValidator();
 
 app.MapControllers();
 

@@ -31,6 +31,8 @@ namespace Desgram.Api.Services
                 User = user,
                 Description = model.Description,
                 AmountLikes = 0,
+                AmountComments = 0,
+                CreatedDate = DateTimeOffset.Now.UtcDateTime,
                 Comments = new List<Comment>(),
                 LikesPublication = new List<LikePublication>(),
                 ImagesPublication = model.MetadataModels
@@ -38,12 +40,13 @@ namespace Desgram.Api.Services
                     {
                         Id = Guid.NewGuid(),
                         MimeType = meta.MimeType,
-                        CreatedDate = DateTime.Now,
+                        CreatedDate = DateTimeOffset.Now.UtcDateTime,
                         Name = meta.Name,
                         Path = _attachService.MoveFromTempToAttach(meta),
                         Owner = user
                     }).ToList()
             };
+
             await _context.Publications.AddAsync(publication);
             await _context.SaveChangesAsync();
         }
@@ -59,7 +62,8 @@ namespace Desgram.Api.Services
                     AmountLikes = p.AmountLikes,
                     Description = p.Description,
                     ImageGuidList = p.ImagesPublication.Select(i=>i.Id).ToList(),
-                    UserName = p.User.Name
+                    UserName = p.User.Name,
+                    AmountComments = p.AmountComments
                 }).ToList();
             return publications;
         }
@@ -68,16 +72,22 @@ namespace Desgram.Api.Services
         {
             var user = await GetUserByIdAsync(userId);
 
+            var publication = await GetPublicationByIdAsync(model.PublicationId);
+
             var comment = new Comment()
             {
                 Id = Guid.NewGuid(),
                 User = user,
-                Publication = await GetPublicationByIdAsync(model.PublicationId),
+                Publication = publication,
                 AmountLikes = 0,
                 Content = model.Content,
                 LikesComment = new List<LikeComment>(),
+                CreatedDate = DateTimeOffset.Now.UtcDateTime
             };
+
+            publication.AmountComments += 1;
             await _context.Comments.AddAsync(comment);
+
             await _context.SaveChangesAsync();
         }
 
@@ -90,16 +100,22 @@ namespace Desgram.Api.Services
                 throw new CustomException("comment not found");
             }
 
+            if (comment.Publication == null)
+            {
+                throw new CustomException("forgot include Publication");
+            }
+
             if (comment.UserId != userId && comment.Publication.UserId != userId)
             {
                 throw new CustomException("you don't have enough rights");
             }
 
+            comment.Publication.AmountComments -= 1;
             _context.Comments.Remove(comment);
             await _context.SaveChangesAsync();
         }
 
-        public async Task AddLike(Guid publicationId, Guid userId)
+        public async Task AddLikePublication(Guid publicationId, Guid userId)
         {
             var publication = await GetPublicationByIdAsync(publicationId);
 
@@ -117,14 +133,36 @@ namespace Desgram.Api.Services
                 User = user,
                 Publication = publication,
             };
-            await _context.LikesPublications.AddAsync(like);
+
             publication.AmountLikes += 1;
+            await _context.LikesPublications.AddAsync(like);
+       
             await _context.SaveChangesAsync();
         }
 
-        public async Task DeleteLike(Guid publicationId, Guid userId)
+        public async Task DeleteLikePublication(Guid publicationId, Guid userId)
         {
-            throw new NotImplementedException();
+            if (await _context.LikesPublications
+                    .Include(c => c.Publication)
+                    .FirstOrDefaultAsync(c => c.UserId == userId && c.PublicationId == publicationId) is not { } like)
+            {
+                throw new CustomException("you've not like this post yet");
+            }
+
+            if (like.Publication == null)
+            {
+                throw new CustomException("forgot include Publication");
+            }
+
+            if (like.UserId != userId)
+            {
+                throw new CustomException("you don't have enough rights");
+            }
+
+            like.Publication.AmountComments -= 1;
+            _context.LikesPublications.Remove(like);
+
+            await _context.SaveChangesAsync();
         }
 
         public async Task AddLikeComment(Guid commentId, Guid userId)
@@ -139,9 +177,18 @@ namespace Desgram.Api.Services
 
         public async Task<List<CommentModel>> GetComments(Guid publicationId)
         {
-            var comments = await _context.Comments.Where(c=>c.PublicationId == publicationId).ToListAsync();
+            var comments = await _context.Comments
+                .Include(c=>c.User)
+                .Where(c=>c.PublicationId == publicationId)
+                .ToListAsync();
 
-            return comments.Select(c=>_mapper.Map<CommentModel>(c)).ToList();
+            return comments.Select(c=> new CommentModel()
+            {
+                AmountLikes = c.AmountLikes,
+                Content = c.Content,
+                Id = c.Id,
+                UserName = c.User.Name
+            }).ToList();
         }
 
 

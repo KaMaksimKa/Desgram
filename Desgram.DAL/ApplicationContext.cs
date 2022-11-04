@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Desgram.DAL.Entities;
+﻿using Desgram.DAL.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Desgram.DAL
@@ -20,7 +15,7 @@ namespace Desgram.DAL
         public DbSet<LikePublication> LikesPublications { get; init; } = null!;
         public DbSet<Like> Likes { get; init; } = null!;
         public DbSet<Publication> Publications { get; init; } = null!;
-
+        public DbSet<UserSession> UserSessions { get; init; } = null!;
 
         public ApplicationContext(DbContextOptions<ApplicationContext> options) :base(options) 
         {

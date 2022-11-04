@@ -3,6 +3,7 @@ using System;
 using Desgram.DAL;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,10 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Desgram.Api.Migrations
 {
     [DbContext(typeof(ApplicationContext))]
-    partial class ApplicationContextModelSnapshot : ModelSnapshot
+    [Migration("20221104215908_Init5")]
+    partial class Init5
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -173,31 +175,6 @@ namespace Desgram.Api.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("Desgram.DAL.Entities.UserSession", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("CreateDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<Guid>("RefreshTokenId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("UserSessions");
-                });
-
             modelBuilder.Entity("Desgram.DAL.Entities.Avatar", b =>
                 {
                     b.HasBaseType("Desgram.DAL.Entities.Attach");
@@ -289,17 +266,6 @@ namespace Desgram.Api.Migrations
                 });
 
             modelBuilder.Entity("Desgram.DAL.Entities.Publication", b =>
-                {
-                    b.HasOne("Desgram.DAL.Entities.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Desgram.DAL.Entities.UserSession", b =>
                 {
                     b.HasOne("Desgram.DAL.Entities.User", "User")
                         .WithMany()

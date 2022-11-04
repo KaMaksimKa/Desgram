@@ -1,13 +1,9 @@
-﻿using System.ComponentModel.DataAnnotations;
-using Desgram.DAL.Entities;
-using Microsoft.AspNetCore.Mvc;
-
-namespace Desgram.Api.Models
+﻿namespace Desgram.Api.Models
 {
     public class CreatePublicationModel
     {
         public string Description { get; set; } = String.Empty;
-        [Required]
-        public List<MetadataModel> MetadataModels { get; set; } 
+         
+        public List<MetadataModel> MetadataModels { get; set; } = new List<MetadataModel>();
     }
 }

@@ -8,8 +8,8 @@ namespace Desgram.Api.Services.Interfaces
         public Task<List<PublicationModel>> GetAllPublicationsAsync();
         public Task AddComment(CreateCommentModel model, Guid userId);
         public Task DeleteComment(Guid commentId, Guid userId);
-        public Task AddLike(Guid publicationId, Guid userId);
-        public Task DeleteLike(Guid publicationId, Guid userId);
+        public Task AddLikePublication(Guid publicationId, Guid userId);
+        public Task DeleteLikePublication(Guid publicationId, Guid userId);
         public Task AddLikeComment(Guid commentId, Guid userId);
         public Task DeleteLikeComment(Guid commentId, Guid userId);
         public Task<List<CommentModel>> GetComments(Guid publicationId);
