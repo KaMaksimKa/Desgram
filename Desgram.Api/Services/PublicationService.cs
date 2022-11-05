@@ -24,6 +24,8 @@ namespace Desgram.Api.Services
         public async Task CreatePublicationAsync(CreatePublicationModel model, Guid userId)
         {
             var user = await GetUserByIdAsync(userId);
+            var hashTagsString = model.Description.Split().Where(w => w.StartsWith("#")).ToList();
+            var hashTags = await GetHashTags(hashTagsString);
 
             var publication = new Publication()
             {
@@ -35,8 +37,8 @@ namespace Desgram.Api.Services
                 CreatedDate = DateTimeOffset.Now.UtcDateTime,
                 Comments = new List<Comment>(),
                 LikesPublication = new List<LikePublication>(),
-                ImagesPublication = model.MetadataModels
-                    .Select(meta => new ImagePublication()
+                AttachPublications = model.MetadataModels
+                    .Select(meta => new AttachPublication()
                     {
                         Id = Guid.NewGuid(),
                         MimeType = meta.MimeType,
@@ -44,27 +46,48 @@ namespace Desgram.Api.Services
                         Name = meta.Name,
                         Path = _attachService.MoveFromTempToAttach(meta),
                         Owner = user
-                    }).ToList()
+                    }).ToList(),
+                HashTags = hashTags
             };
 
             await _context.Publications.AddAsync(publication);
             await _context.SaveChangesAsync();
         }
 
+        private async Task<List<HashTag>> GetHashTags(List<string> hashTagsString)
+        {
+            var hashTagsDb = await _context.HashTags.ToListAsync();
+
+            var hashTags = new List<HashTag>();
+
+            foreach (var hashTagString in hashTagsString)
+            {
+                if (hashTagsDb.FirstOrDefault(h => h.Title == hashTagString) is { } hashTag)
+                {
+                    hashTags.Add(hashTag);
+                }
+                else
+                {
+                    var newHashTag = (await _context.HashTags.AddAsync(new HashTag()
+                    {
+                        Id = Guid.NewGuid(),
+                        Title = hashTagString
+                    })).Entity;
+
+                    hashTags.Add(newHashTag);
+                }
+
+            }
+            return hashTags;
+        }
+
         public async Task<List<PublicationModel>> GetAllPublicationsAsync()
         {
             var publications = (await _context.Publications
-                    .Include(p=>p.ImagesPublication)
-                    .Include(p=>p.User).ToListAsync())
-                .Select(p=> new PublicationModel()
-                {
-                    Id = p.Id,
-                    AmountLikes = p.AmountLikes,
-                    Description = p.Description,
-                    ImageGuidList = p.ImagesPublication.Select(i=>i.Id).ToList(),
-                    UserName = p.User.Name,
-                    AmountComments = p.AmountComments
-                }).ToList();
+                    .Include(p=>p.AttachPublications)
+                    .Include(p=>p.User)
+                    .Include(p =>p.HashTags).ToListAsync())
+                .Select(p=> _mapper.Map<PublicationModel>(p)).ToList();
             return publications;
         }
 
@@ -167,13 +190,55 @@ namespace Desgram.Api.Services
 
         public async Task AddLikeComment(Guid commentId, Guid userId)
         {
-            throw new NotImplementedException();
+            var comment = await _context.Comments.FirstOrDefaultAsync(c=>c.Id == commentId);
+            if (comment == null)
+            {
+                throw new CustomException("comment not found");
+            }
+
+            if (await _context.LikesComments
+                    .FirstOrDefaultAsync(l => l.CommentId == commentId && l.UserId == userId) != null)
+            {
+                throw new CustomException("you've already like this post");
+            }
+
+            var user = await GetUserByIdAsync(userId);
+
+            var like = new LikeComment()
+            {
+                Id = Guid.NewGuid(),
+                User = user,
+                Comment = comment,
+            };
+
+            comment.AmountLikes += 1;
+            await _context.LikesComments.AddAsync(like);
+
+            await _context.SaveChangesAsync();
         }
 
         public async Task DeleteLikeComment(Guid commentId, Guid userId)
         {
-            throw new NotImplementedException();
+            var comment = await _context.Comments.FirstOrDefaultAsync(c => c.Id == commentId);
+            if (comment == null)
+            {
+                throw new CustomException("comment not found");
+            }
+
+            if (await _context.LikesComments
+                    .FirstOrDefaultAsync(l => l.CommentId == commentId && l.UserId == userId) is not {} like)
+            {
+                throw new CustomException("you've not like this post yet");
+            }
+
+            
+
+            comment.AmountLikes -= 1;
+            _context.LikesComments.Remove(like);
+
+            await _context.SaveChangesAsync();
         }
+
 
         public async Task<List<CommentModel>> GetComments(Guid publicationId)
         {
@@ -191,6 +256,15 @@ namespace Desgram.Api.Services
             }).ToList();
         }
 
+        public async Task<List<PublicationModel>> GetPublicationByHashTagAsync(string hashTag)
+        {
+            var publication = await _context.Publications
+                .Include(p=>p.User)
+                .Include(p=>p.HashTags)
+                .Include(p=>p.AttachPublications)
+                .Where(p => p.HashTags.Any(p => p.Title == hashTag)).ToListAsync();
+            return publication.Select(p => _mapper.Map<PublicationModel>(p)).ToList();
+        }
 
         private async Task<Publication> GetPublicationByIdAsync(Guid id)
         {

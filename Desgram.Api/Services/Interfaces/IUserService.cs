@@ -11,5 +11,6 @@ namespace Desgram.Api.Services.Interfaces
         public Task<UserModel> GetUserByIdAsync(Guid userId);
         public Task AddAvatarAsync(MetadataModel model,Guid userId);
         public Task<AttachModel> GetAvatarAsync(Guid userId);
+
     }
 }

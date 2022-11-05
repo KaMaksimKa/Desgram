@@ -18,8 +18,23 @@ namespace Desgram.Api
             CreateMap<User, UserModel>();
 
             CreateMap<Publication, PublicationModel>()
-                .ForMember(d => d.ImageGuidList, m => m.MapFrom(s => s.ImagesPublication.Select(i => i.Id).ToList()));
-            
+                .ForMember(d => d.ContentModels,
+                    m => m.MapFrom(
+                        s => s.AttachPublications.Select(i => new PublicationContentModel()
+                        {
+                            AttachId = i.Id,
+                            MimeType = i.MimeType
+                        }).ToList()))
+                .ForMember(d=>d.UserName,
+                    m=>m.MapFrom(
+                        s =>s.User.Name))
+                .ForMember(d => d.HashTags,
+                    m => m.MapFrom(
+                        s => s.HashTags.Select(h => h.Title).ToList()));
+
+
+           
+
             CreateMap<Comment, CommentModel>();
         }
     }

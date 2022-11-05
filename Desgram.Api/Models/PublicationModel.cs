@@ -5,8 +5,9 @@
         public Guid Id { get; set; }
         public string UserName { get; set; } = null!;
         public string Description { get; set; } = null!;
-        public List<Guid> ImageGuidList { get; set; } = new List<Guid>();
         public int AmountLikes { get; set; }
         public int AmountComments { get; set; }
+        public List<PublicationContentModel> ContentModels { get; set; } = null!;
+        public List<string> HashTags { get; set; } = null!;
     }
 }

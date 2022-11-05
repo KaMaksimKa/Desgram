@@ -13,5 +13,6 @@ namespace Desgram.Api.Services.Interfaces
         public Task AddLikeComment(Guid commentId, Guid userId);
         public Task DeleteLikeComment(Guid commentId, Guid userId);
         public Task<List<CommentModel>> GetComments(Guid publicationId);
+        public Task<List<PublicationModel>> GetPublicationByHashTagAsync(string hashTag);
     }
 }

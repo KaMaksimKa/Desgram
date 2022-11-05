@@ -3,6 +3,7 @@ using System;
 using Desgram.DAL;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,10 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Desgram.Api.Migrations
 {
     [DbContext(typeof(ApplicationContext))]
-    partial class ApplicationContextModelSnapshot : ModelSnapshot
+    [Migration("20221105202758_AddSubs")]
+    partial class AddSubs
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -156,12 +158,6 @@ namespace Desgram.Api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<int>("AmountSubscribers")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("AmountSubscriptions")
-                        .HasColumnType("integer");
-
                     b.Property<string>("Biography")
                         .HasColumnType("text");
 
@@ -240,7 +236,7 @@ namespace Desgram.Api.Migrations
 
                     b.HasIndex("SubscriptionId");
 
-                    b.ToTable("UserSubscriptions");
+                    b.ToTable("UserSubscription");
                 });
 
             modelBuilder.Entity("HashTagPublication", b =>
@@ -373,13 +369,13 @@ namespace Desgram.Api.Migrations
             modelBuilder.Entity("Desgram.DAL.Entities.UserSubscription", b =>
                 {
                     b.HasOne("Desgram.DAL.Entities.User", "Subscriber")
-                        .WithMany("Subscriptions")
+                        .WithMany("Subscribers")
                         .HasForeignKey("SubscriberId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Desgram.DAL.Entities.User", "Subscription")
-                        .WithMany("Subscribers")
+                        .WithMany("Subscriptions")
                         .HasForeignKey("SubscriptionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();

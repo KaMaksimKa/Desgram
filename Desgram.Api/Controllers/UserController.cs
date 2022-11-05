@@ -28,7 +28,7 @@ namespace Desgram.Api.Controllers
         [HttpGet]
         public async Task<UserModel> GetCurrentUser()
         {
-            var userId = UserHelper.GetUserIdByClaimsPrincipal(User);
+            var userId = User.GetUserId();
 
             return await _userService.GetUserByIdAsync(userId);
         }
@@ -43,7 +43,7 @@ namespace Desgram.Api.Controllers
         [HttpPost]
         public async Task AddAvatar(MetadataModel model)
         {
-            var userId = UserHelper.GetUserIdByClaimsPrincipal(User);
+            var userId = User.GetUserId();
 
             await _userService.AddAvatarAsync(model,userId);
         }
@@ -52,7 +52,7 @@ namespace Desgram.Api.Controllers
         [HttpGet]
         public async Task<FileResult> GetAvatar()
         {
-            var userId = UserHelper.GetUserIdByClaimsPrincipal(User);
+            var userId = User.GetUserId();
 
             var attach =  await _userService.GetAvatarAsync(userId);
 
