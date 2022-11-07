@@ -6,18 +6,20 @@ namespace Desgram.Api.Models
     {
 
         [Required]
-        public string Name { get; init; }
+        [RegularExpression(@"[A-Za-z0-9._]*")]
+        public string Name { get; init; } = null!;
 
         [Required]
-        public string Email { get; init; }
+        [EmailAddress]
+        public string Email { get; init; } = null!;
 
         [Required]
         [MinLength(6)]
-        public string Password { get; init; }
+        public string Password { get; init; } = null!;
 
         [Required]
         [Compare(nameof(Password))]
-        public string RetryPassword { get; init; }
+        public string RetryPassword { get; init; } = null!;
 
 
 

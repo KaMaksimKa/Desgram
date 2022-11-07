@@ -25,6 +25,15 @@ namespace Desgram.Api.Controllers
             await _publicationService.CreatePublicationAsync(model, userId);
         }
 
+        [Authorize]
+        [HttpPost]
+        public async Task DeletePublication(Guid publicationId)
+        {
+            var userId = User.GetUserId();
+            await _publicationService.DeletePublication(publicationId,userId);
+        }
+
+
         [HttpGet]
         public async Task<List<PublicationModel>> GetPublications()
         {
@@ -60,7 +69,7 @@ namespace Desgram.Api.Controllers
         }
 
         [Authorize]
-        [HttpGet]
+        [HttpPost]
         public async Task AddLikePublication(Guid publicationId)
         {
             var userId = User.GetUserId();
@@ -75,7 +84,7 @@ namespace Desgram.Api.Controllers
         }
 
         [Authorize]
-        [HttpGet]
+        [HttpPost]
         public async Task AddLikeComment(Guid commentId)
         {
             var userId = User.GetUserId();

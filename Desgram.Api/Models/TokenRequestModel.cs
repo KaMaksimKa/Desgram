@@ -1,9 +1,14 @@
-﻿namespace Desgram.Api.Models
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Desgram.Api.Models
 {
     public class TokenRequestModel
     {
-        public string UserName { get; set; }
-        public string Password { get; set; }
+        [Required]
+        public string UserName { get; set; } = null!;
+
+        [Required]
+        public string Password { get; set; } = null!;
 
     }
 }

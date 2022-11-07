@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Desgram.Api.Models;
+using Desgram.Api.Services.Dto;
 using Desgram.Api.Services.Interfaces;
 using Desgram.DAL;
 using Desgram.DAL.Entities;
@@ -13,18 +14,22 @@ namespace Desgram.Api.Services
         private readonly IMapper _mapper;
         private readonly ApplicationContext _context;
         private readonly IAttachService _attachService;
+        private readonly IEmailSender _emailSender;
 
 
-        public UserService(IMapper mapper,ApplicationContext context,IAttachService attachService)
+        public UserService(IMapper mapper,ApplicationContext context,
+            IAttachService attachService,IEmailSender emailSender)
         {
             _mapper = mapper;
             _context = context;
             _attachService = attachService;
+            _emailSender = emailSender;
         }
 
         public async Task CreateUserAsync(CreateUserModel createUser)
         {
             var user = _mapper.Map<User>(createUser);
+
             await CreateAsync(user);
         }
 

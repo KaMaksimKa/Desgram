@@ -1,10 +1,14 @@
-﻿using Desgram.DAL.Entities;
+﻿using System.ComponentModel.DataAnnotations;
+using Desgram.DAL.Entities;
 
 namespace Desgram.Api.Models
 {
     public class CreateCommentModel
     {
-        public string Content { get; set; }
+        [Required]
+        public string Content { get; set; } = null!;
+
+        [Required]
         public Guid PublicationId { get; set; }
     }
 }

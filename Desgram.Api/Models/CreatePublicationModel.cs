@@ -1,9 +1,12 @@
-﻿namespace Desgram.Api.Models
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Desgram.Api.Models
 {
     public class CreatePublicationModel
     {
         public string Description { get; set; } = String.Empty;
-         
-        public List<MetadataModel> MetadataModels { get; set; } = new List<MetadataModel>();
+
+        [Required]
+        public List<MetadataModel> MetadataModels { get; set; } = null!;
     }
 }

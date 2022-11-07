@@ -28,7 +28,9 @@ namespace Desgram.Api.Services
 
         public async Task<TokenModel> GetTokenByCredentials(string login, string password)
         {
-            var user = await GetByNameAsync(login);
+
+            var user = IsEmail(login) ? await GetByUserEmailAsync(login) : await GetUserByNameAsync(login);
+
             if (!VerifyPassword(user, password))
             {
                 throw new CustomException("password is not correct");
@@ -50,6 +52,11 @@ namespace Desgram.Api.Services
                 RefreshToken = GetRefreshToken(session)
 
             };
+        }
+
+        private bool IsEmail(string str)
+        {
+            return str.Contains("@");
         }
 
         public async Task<TokenModel> GetTokenByRefreshToken(string refreshToken)
@@ -157,7 +164,7 @@ namespace Desgram.Api.Services
             return HashHelper.Verify(password, user.PasswordHash);
         }
 
-        private async Task<User> GetByNameAsync(string name)
+        private async Task<User> GetUserByNameAsync(string name)
         {
             var user = await _context.Users
                 .FirstOrDefaultAsync(u => u.Name.ToLower() == name.ToLower());
@@ -168,16 +175,14 @@ namespace Desgram.Api.Services
             return user;
         }
 
-        private async Task<User> GetByIdAsync(Guid id)
+        private async Task<User> GetByUserEmailAsync(string email)
         {
-
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
-
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
             if (user == null)
             {
                 throw new CustomException("user not found");
             }
-
             return user;
         }
     }

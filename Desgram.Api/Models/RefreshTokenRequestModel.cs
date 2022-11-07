@@ -1,8 +1,11 @@
-﻿namespace Desgram.Api.Models
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Desgram.Api.Models
 {
     public class RefreshTokenRequestModel
     {
-        public string RefreshToken { get; set; }
+        [Required]
+        public string RefreshToken { get; set; } = null!;
 
     }
 }

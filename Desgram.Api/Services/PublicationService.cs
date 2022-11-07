@@ -54,6 +54,25 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
+        public async Task DeletePublication(Guid publicationId, Guid userId)
+        {
+            if (await _context.Publications
+                    .FirstOrDefaultAsync(c => c.Id == publicationId) is not { } publication)
+            {
+                throw new CustomException("publication not found");
+            }
+            
+            
+            if (publication.UserId != userId)
+            {
+                throw new CustomException("you don't have enough rights");
+            }
+            
+            _context.Publications.Remove(publication);
+            await _context.SaveChangesAsync();
+        }
+
+
         private async Task<List<HashTag>> GetHashTags(List<string> hashTagsString)
         {
             var hashTagsDb = await _context.HashTags.ToListAsync();
@@ -182,7 +201,7 @@ namespace Desgram.Api.Services
                 throw new CustomException("you don't have enough rights");
             }
 
-            like.Publication.AmountComments -= 1;
+            like.Publication.AmountLikes -= 1;
             _context.LikesPublications.Remove(like);
 
             await _context.SaveChangesAsync();
@@ -199,7 +218,7 @@ namespace Desgram.Api.Services
             if (await _context.LikesComments
                     .FirstOrDefaultAsync(l => l.CommentId == commentId && l.UserId == userId) != null)
             {
-                throw new CustomException("you've already like this post");
+                throw new CustomException("you've already like this comment");
             }
 
             var user = await GetUserByIdAsync(userId);
@@ -228,7 +247,7 @@ namespace Desgram.Api.Services
             if (await _context.LikesComments
                     .FirstOrDefaultAsync(l => l.CommentId == commentId && l.UserId == userId) is not {} like)
             {
-                throw new CustomException("you've not like this post yet");
+                throw new CustomException("you've not like this comment yet");
             }
 
             

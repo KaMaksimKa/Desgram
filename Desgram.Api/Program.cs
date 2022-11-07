@@ -16,6 +16,11 @@ var authConfig = authSection.Get<AuthConfig>();
 
 builder.Services.Configure<AuthConfig>(authSection);
 
+var emailSection = builder.Configuration.GetSection(EmailConfig.Position);
+builder.Services.Configure<EmailConfig>(emailSection);
+
+
+
 builder.Services.AddControllers();
 
 builder.Services.AddEndpointsApiExplorer();
@@ -65,6 +70,7 @@ builder.Services.AddScoped<IAttachService,AttachService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IPublicationService, PublicationService>();
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
+builder.Services.AddScoped<IEmailSender, EmailSender>();
 
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
