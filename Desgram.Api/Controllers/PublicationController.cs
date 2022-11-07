@@ -56,10 +56,10 @@ namespace Desgram.Api.Controllers
 
         [Authorize]
         [HttpPost]
-        public async Task DeleteComment(DeleteCommentModel model)
+        public async Task DeleteComment(Guid commentId)
         {
             var userId = User.GetUserId();
-            await _publicationService.DeleteComment(model.CommentId, userId);
+            await _publicationService.DeleteComment(commentId, userId);
         }
 
         [HttpGet]
