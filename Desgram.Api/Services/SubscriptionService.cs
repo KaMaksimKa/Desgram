@@ -31,7 +31,8 @@ namespace Desgram.Api.Services
             {
                 Id = Guid.NewGuid(),
                 Subscriber = subscriber,
-                Subscription = subscription
+                Subscription = subscription,
+                CreateDate = DateTimeOffset.Now.UtcDateTime
             };
 
             subscriber.AmountSubscriptions++;

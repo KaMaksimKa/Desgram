@@ -9,11 +9,12 @@ namespace Desgram.DAL.Entities
     public class UserSubscription
     {
         public Guid Id { get; set; }
-
+        public DateTimeOffset CreateDate { get; set; }
         public Guid SubscriberId { get; set; }
-        public User? Subscriber { get; set; }
-
         public Guid SubscriptionId { get; set; }
+
+        public User? Subscriber { get; set; }
         public User? Subscription { get; set; }
+       
     }
 }

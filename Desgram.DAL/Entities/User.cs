@@ -12,6 +12,7 @@
         public DateTimeOffset CreatedDate { get; init; }
         public int AmountSubscriptions { get; set; }
         public int AmountSubscribers { get; set; }
+
         public Avatar? Avatar { get; set; }
         public List<UserSubscription>? Subscriptions { get; set; }
         public List<UserSubscription>? Subscribers { get; set; }

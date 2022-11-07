@@ -174,6 +174,7 @@ namespace Desgram.Api.Services
                 Id = Guid.NewGuid(),
                 User = user,
                 Publication = publication,
+                CreatedDate = DateTimeOffset.Now.UtcDateTime
             };
 
             publication.AmountLikes += 1;
@@ -228,6 +229,7 @@ namespace Desgram.Api.Services
                 Id = Guid.NewGuid(),
                 User = user,
                 Comment = comment,
+                CreatedDate = DateTimeOffset.Now.UtcDateTime
             };
 
             comment.AmountLikes += 1;

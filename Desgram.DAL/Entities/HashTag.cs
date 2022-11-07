@@ -10,6 +10,7 @@ namespace Desgram.DAL.Entities
     {
         public Guid Id { get; set; }
         public string Title { get; set; } = null!;
+
         public List<Publication>? Publications { get; set; }
     }
 }

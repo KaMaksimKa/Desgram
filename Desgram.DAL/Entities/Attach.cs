@@ -7,8 +7,8 @@
         public string MimeType { get; set; } = null!;
         public string Path { get; set; } = null!;
         public DateTimeOffset CreatedDate { get; set; }
-
         public Guid OwnerId { get; set; }
+
         public User? Owner { get; set; }
     }
 }
