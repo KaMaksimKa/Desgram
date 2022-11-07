@@ -4,7 +4,9 @@ namespace Desgram.Api.Services.Interfaces
 {
     public interface IAuthService
     {
-        Task<TokenModel> GetTokenByCredentials(string login, string password);
-        Task<TokenModel> GetTokenByRefreshToken(string refreshToken);
+        public Task<TokenModel> GetTokenByCredentials(string login, string password);
+        public Task<TokenModel> GetTokenByRefreshToken(string refreshToken);
+        public Task LogoutBySessionId(Guid sessionId);
+        public Task LogoutAllDeviceByUserId(Guid userId);
     }
 }

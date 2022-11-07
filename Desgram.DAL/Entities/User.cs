@@ -13,9 +13,11 @@
         public int AmountSubscriptions { get; set; }
         public int AmountSubscribers { get; set; }
 
-        public Avatar? Avatar { get; set; }
-        public List<UserSubscription>? Subscriptions { get; set; }
-        public List<UserSubscription>? Subscribers { get; set; }
-        
+        public virtual Avatar? Avatar { get; set; }
+        public virtual List<UserSubscription>? Subscriptions { get; set; }
+        public virtual List<UserSubscription>? Subscribers { get; set; }
+        public virtual List<UserSession>? Sessions { get; set; }
+
+
     }
 }

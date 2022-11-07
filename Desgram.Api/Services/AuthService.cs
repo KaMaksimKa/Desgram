@@ -101,6 +101,40 @@ namespace Desgram.Api.Services
             };
         }
 
+        public async Task LogoutBySessionId(Guid sessionId)
+        {
+            var session = await _context.UserSessions.FirstOrDefaultAsync(s => s.Id == sessionId && s.IsActive);
+            if (session == null)
+            {
+                throw new CustomException("session not found");
+            }
+
+            session.IsActive = false;
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task LogoutAllDeviceByUserId(Guid userId)
+        {
+            var user =await _context.Users
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            var sessions = await _context.UserSessions
+                .Where(s => s.UserId == userId && s.IsActive)
+                .ToListAsync();
+
+            if (user == null)
+            {
+                throw new CustomException("user not found");
+            }
+
+            foreach (var session in sessions)
+            {
+                session.IsActive = false;
+            }
+
+            await _context.SaveChangesAsync();
+        }
+
 
         private async Task<UserSession> GetSessionWithUserByRefreshAsync(Guid refreshTokenId)
         {

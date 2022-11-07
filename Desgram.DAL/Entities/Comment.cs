@@ -8,9 +8,11 @@
         public Guid PublicationId { get; set; }
         public int AmountLikes { get; set; } = 0;
         public DateTimeOffset CreatedDate { get; set; }
+        public DateTimeOffset? DeletedDate { get; set; }
 
-        public User? User { get; set; }
-        public Publication? Publication { get; set; }
-        public List<LikeComment> LikesComment { get; set; } = null!;
+
+        public virtual User? User { get; set; }
+        public virtual Publication? Publication { get; set; }
+        public virtual List<LikeComment> LikesComment { get; set; } = null!;
     }
 }

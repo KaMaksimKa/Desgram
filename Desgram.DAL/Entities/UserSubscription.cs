@@ -13,8 +13,8 @@ namespace Desgram.DAL.Entities
         public Guid SubscriberId { get; set; }
         public Guid SubscriptionId { get; set; }
 
-        public User? Subscriber { get; set; }
-        public User? Subscription { get; set; }
+        public virtual User? Subscriber { get; set; }
+        public virtual User? Subscription { get; set; }
        
     }
 }

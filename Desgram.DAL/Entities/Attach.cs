@@ -8,7 +8,9 @@
         public string Path { get; set; } = null!;
         public DateTimeOffset CreatedDate { get; set; }
         public Guid OwnerId { get; set; }
+        public DateTimeOffset? DeletedDate { get; set; }
 
-        public User? Owner { get; set; }
+
+        public virtual User? Owner { get; set; }
     }
 }

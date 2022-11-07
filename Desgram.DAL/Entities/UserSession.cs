@@ -14,6 +14,6 @@ namespace Desgram.DAL.Entities
         public DateTimeOffset CreateDate { get; set; }
         public bool IsActive { get; set; } = true;
 
-        public User? User { get; set; }
+        public virtual User? User { get; set; }
     }
 }

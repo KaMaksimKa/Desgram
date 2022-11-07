@@ -1,5 +1,7 @@
-﻿using Desgram.Api.Models;
+﻿using Desgram.Api.Infrastructure;
+using Desgram.Api.Models;
 using Desgram.Api.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Desgram.Api.Controllers
@@ -25,6 +27,23 @@ namespace Desgram.Api.Controllers
         public async Task<TokenModel> RefreshToken(RefreshTokenRequestModel model)
         {
             return await _authService.GetTokenByRefreshToken(model.RefreshToken);
+        }
+
+
+        [Authorize]
+        [HttpPost]
+        public async Task Logout()
+        {
+            var sessionId = User.GetSessionId();
+            await _authService.LogoutBySessionId(sessionId);
+        }
+
+        [Authorize]
+        [HttpPost]
+        public async Task LogoutAllDevice()
+        {
+            var userId = User.GetUserId();
+            await _authService.LogoutAllDeviceByUserId(userId);
         }
     }
 }

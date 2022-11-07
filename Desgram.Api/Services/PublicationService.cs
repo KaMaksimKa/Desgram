@@ -47,7 +47,8 @@ namespace Desgram.Api.Services
                         Path = _attachService.MoveFromTempToAttach(meta),
                         Owner = user
                     }).ToList(),
-                HashTags = hashTags
+                HashTags = hashTags,
+                DeletedDate = null
             };
 
             await _context.Publications.AddAsync(publication);
@@ -57,7 +58,7 @@ namespace Desgram.Api.Services
         public async Task DeletePublication(Guid publicationId, Guid userId)
         {
             if (await _context.Publications
-                    .FirstOrDefaultAsync(c => c.Id == publicationId) is not { } publication)
+                    .FirstOrDefaultAsync(c => c.Id == publicationId && c.DeletedDate == null) is not { } publication)
             {
                 throw new CustomException("publication not found");
             }
@@ -68,7 +69,8 @@ namespace Desgram.Api.Services
                 throw new CustomException("you don't have enough rights");
             }
             
-            _context.Publications.Remove(publication);
+            publication.DeletedDate = DateTimeOffset.Now.UtcDateTime;
+
             await _context.SaveChangesAsync();
         }
 
@@ -105,7 +107,8 @@ namespace Desgram.Api.Services
             var publications = (await _context.Publications
                     .Include(p=>p.AttachPublications)
                     .Include(p=>p.User)
-                    .Include(p =>p.HashTags).ToListAsync())
+                    .Include(p =>p.HashTags)
+                    .Where(p=>p.DeletedDate == null).ToListAsync())
                 .Select(p=> _mapper.Map<PublicationModel>(p)).ToList();
             return publications;
         }
@@ -124,7 +127,8 @@ namespace Desgram.Api.Services
                 AmountLikes = 0,
                 Content = model.Content,
                 LikesComment = new List<LikeComment>(),
-                CreatedDate = DateTimeOffset.Now.UtcDateTime
+                CreatedDate = DateTimeOffset.Now.UtcDateTime,
+                DeletedDate = null
             };
 
             publication.AmountComments += 1;
@@ -137,7 +141,7 @@ namespace Desgram.Api.Services
         {
             if ( await _context.Comments
                     .Include(c => c.Publication)
-                    .FirstOrDefaultAsync(c => c.Id == commentId) is not { } comment)
+                    .FirstOrDefaultAsync(c => c.Id == commentId && c.DeletedDate == null) is not { } comment)
             {
                 throw new CustomException("comment not found");
             }
@@ -153,7 +157,8 @@ namespace Desgram.Api.Services
             }
 
             comment.Publication.AmountComments -= 1;
-            _context.Comments.Remove(comment);
+            comment.DeletedDate = DateTimeOffset.Now.UtcDateTime;
+
             await _context.SaveChangesAsync();
         }
 
@@ -162,7 +167,7 @@ namespace Desgram.Api.Services
             var publication = await GetPublicationByIdAsync(publicationId);
 
             if (await _context.LikesPublications
-                    .FirstOrDefaultAsync(l => l.PublicationId == publicationId && l.UserId == userId) != null)
+                    .FirstOrDefaultAsync(l => l.PublicationId == publicationId && l.UserId == userId && l.DeletedDate == null) != null)
             {
                 throw new CustomException("you've already like this post");
             }
@@ -174,7 +179,8 @@ namespace Desgram.Api.Services
                 Id = Guid.NewGuid(),
                 User = user,
                 Publication = publication,
-                CreatedDate = DateTimeOffset.Now.UtcDateTime
+                CreatedDate = DateTimeOffset.Now.UtcDateTime,
+                DeletedDate = null
             };
 
             publication.AmountLikes += 1;
@@ -187,7 +193,7 @@ namespace Desgram.Api.Services
         {
             if (await _context.LikesPublications
                     .Include(c => c.Publication)
-                    .FirstOrDefaultAsync(c => c.UserId == userId && c.PublicationId == publicationId) is not { } like)
+                    .FirstOrDefaultAsync(l => l.UserId == userId && l.PublicationId == publicationId && l.DeletedDate ==null) is not { } like)
             {
                 throw new CustomException("you've not like this post yet");
             }
@@ -203,21 +209,21 @@ namespace Desgram.Api.Services
             }
 
             like.Publication.AmountLikes -= 1;
-            _context.LikesPublications.Remove(like);
+            like.DeletedDate = DateTimeOffset.Now.UtcDateTime;
 
             await _context.SaveChangesAsync();
         }
 
         public async Task AddLikeComment(Guid commentId, Guid userId)
         {
-            var comment = await _context.Comments.FirstOrDefaultAsync(c=>c.Id == commentId);
+            var comment = await _context.Comments.FirstOrDefaultAsync(c=>c.Id == commentId && c.DeletedDate == null);
             if (comment == null)
             {
                 throw new CustomException("comment not found");
             }
 
             if (await _context.LikesComments
-                    .FirstOrDefaultAsync(l => l.CommentId == commentId && l.UserId == userId) != null)
+                    .FirstOrDefaultAsync(l => l.CommentId == commentId && l.UserId == userId && l.DeletedDate == null ) != null)
             {
                 throw new CustomException("you've already like this comment");
             }
@@ -229,7 +235,8 @@ namespace Desgram.Api.Services
                 Id = Guid.NewGuid(),
                 User = user,
                 Comment = comment,
-                CreatedDate = DateTimeOffset.Now.UtcDateTime
+                CreatedDate = DateTimeOffset.Now.UtcDateTime,
+                DeletedDate = null
             };
 
             comment.AmountLikes += 1;
@@ -240,14 +247,14 @@ namespace Desgram.Api.Services
 
         public async Task DeleteLikeComment(Guid commentId, Guid userId)
         {
-            var comment = await _context.Comments.FirstOrDefaultAsync(c => c.Id == commentId);
+            var comment = await _context.Comments.FirstOrDefaultAsync(c => c.Id == commentId && c.DeletedDate == null);
             if (comment == null)
             {
                 throw new CustomException("comment not found");
             }
 
             if (await _context.LikesComments
-                    .FirstOrDefaultAsync(l => l.CommentId == commentId && l.UserId == userId) is not {} like)
+                    .FirstOrDefaultAsync(l => l.CommentId == commentId && l.UserId == userId && l.DeletedDate == null) is not {} like)
             {
                 throw new CustomException("you've not like this comment yet");
             }
@@ -255,7 +262,7 @@ namespace Desgram.Api.Services
             
 
             comment.AmountLikes -= 1;
-            _context.LikesComments.Remove(like);
+            like.DeletedDate = DateTimeOffset.Now.UtcDateTime;
 
             await _context.SaveChangesAsync();
         }
@@ -265,7 +272,7 @@ namespace Desgram.Api.Services
         {
             var comments = await _context.Comments
                 .Include(c=>c.User)
-                .Where(c=>c.PublicationId == publicationId)
+                .Where(c=>c.DeletedDate == null && c.PublicationId == publicationId)
                 .ToListAsync();
 
             return comments.Select(c=> new CommentModel()
@@ -283,13 +290,13 @@ namespace Desgram.Api.Services
                 .Include(p=>p.User)
                 .Include(p=>p.HashTags)
                 .Include(p=>p.AttachPublications)
-                .Where(p => p.HashTags.Any(p => p.Title == hashTag)).ToListAsync();
+                .Where(p =>p.DeletedDate == null && p.HashTags.Any(p => p.Title == hashTag)).ToListAsync();
             return publication.Select(p => _mapper.Map<PublicationModel>(p)).ToList();
         }
 
         private async Task<Publication> GetPublicationByIdAsync(Guid id)
         {
-            var publication =await _context.Publications.FirstOrDefaultAsync(p => p.Id == id);
+            var publication =await _context.Publications.FirstOrDefaultAsync(p => p.Id == id && p.DeletedDate == null);
             if (publication == null)
             {
                 throw new CustomException("publication not found");
