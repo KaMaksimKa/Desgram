@@ -22,7 +22,7 @@ namespace Desgram.Api.Services
             var subscription = await GetUserByNameAsync(subscriptionUserName);
 
             if (_context.UserSubscriptions
-                .Any(s => s.SubscriberId == subscriberId && s.SubscriptionId == subscription.Id))
+                .Any(s => s.SubscriberId == subscriberId && s.SubscriptionId == subscription.Id && s.DeletedDate == null))
             {
                 throw new CustomException("you've already subscribe");
             }
@@ -32,7 +32,8 @@ namespace Desgram.Api.Services
                 Id = Guid.NewGuid(),
                 Subscriber = subscriber,
                 Subscription = subscription,
-                CreateDate = DateTimeOffset.Now.UtcDateTime
+                CreateDate = DateTimeOffset.Now.UtcDateTime,
+                DeletedDate = null
             };
 
             subscriber.AmountSubscriptions++;
@@ -49,7 +50,7 @@ namespace Desgram.Api.Services
 
             if (await _context.UserSubscriptions
                 .FirstOrDefaultAsync(s => s.SubscriberId == subscriberId
-                                          && s.SubscriptionId == subscription.Id) is not {} subscribe)
+                                          && s.SubscriptionId == subscription.Id && s.DeletedDate == null) is not {} subscribe)
             {
                 throw new CustomException("you've not subscribe yet");
             }
@@ -58,22 +59,21 @@ namespace Desgram.Api.Services
             subscriber.AmountSubscriptions--;
             subscription.AmountSubscribers--;
 
-            _context.UserSubscriptions.Remove(subscribe);
+            subscribe.DeletedDate = DateTimeOffset.Now.UtcDateTime;
+            
             await _context.SaveChangesAsync();
         }
 
         public async Task<List<SubscriptionModel>> GetSubscriptions(Guid userId)
         {
-            var user =await _context.Users
-                .Include(u => u.Subscriptions)!
-                .ThenInclude(s=>s.Subscription)
-                .FirstOrDefaultAsync(u => u.Id == userId);
-            if (user == null)
-            {
-                throw new CustomException("user not found");
-            }
+            var user = await GetUserByIdAsync(userId);
 
-            return user.Subscriptions.Select(s => new SubscriptionModel()
+            var subscriptions =await _context.UserSubscriptions
+                .Include(s=>s.Subscription)
+                .Where(s => s.SubscriberId == user.Id && s.DeletedDate == null)
+                .ToListAsync();
+
+            return subscriptions.Select(s => new SubscriptionModel()
             {
                 UserName = s.Subscription.Name
             }).ToList();
@@ -81,19 +81,18 @@ namespace Desgram.Api.Services
 
         public async Task<List<SubscriptionModel>> GetSubscribers(Guid userId)
         {
-            var user = await _context.Users
-                .Include(u => u.Subscribers)!
-                .ThenInclude(s=>s.Subscriber)
-                .FirstOrDefaultAsync(u => u.Id == userId);
-            if (user == null)
-            {
-                throw new CustomException("user not found");
-            }
+            var user = await GetUserByIdAsync(userId);
+            
+            var subscribers =await _context.UserSubscriptions
+                .Include(s => s.Subscriber)
+                .Where(s => s.SubscriptionId == user.Id && s.DeletedDate == null)
+                .ToListAsync();
 
-            return user.Subscribers.Select(s => new SubscriptionModel()
+            return subscribers.Select(s => new SubscriptionModel()
             {
                 UserName = s.Subscriber.Name
             }).ToList();
+
         }
 
         private async Task<User> GetUserByIdAsync(Guid id)

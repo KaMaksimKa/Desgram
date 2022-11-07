@@ -12,6 +12,7 @@ namespace Desgram.DAL.Entities
         public DateTimeOffset CreateDate { get; set; }
         public Guid SubscriberId { get; set; }
         public Guid SubscriptionId { get; set; }
+        public DateTimeOffset? DeletedDate { get; set; }
 
         public virtual User? Subscriber { get; set; }
         public virtual User? Subscription { get; set; }
