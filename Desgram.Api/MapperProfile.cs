@@ -22,6 +22,7 @@ namespace Desgram.Api
                     m => m.MapFrom(
                         s => s.AttachPublications.Select(i => new PublicationContentModel()
                         {
+                            Id = i.Id,
                             AttachPath =$"api/Attach/DisplayAttachById?id={i.Id}",
                             MimeType = i.MimeType
                         }).ToList()))

@@ -23,6 +23,7 @@ namespace Desgram.Api.Services
                 Id = Guid.NewGuid(),
                 MimeType = file.ContentType,
                 Name = file.Name,
+                Size = file.Length
             };
 
             var path = Path.Combine(Path.GetTempPath(), "Desgram",_defaultPathImage,metadata.Id.ToString());

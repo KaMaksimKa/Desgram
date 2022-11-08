@@ -60,7 +60,8 @@ namespace Desgram.Api.Services
                 CreatedDate = DateTimeOffset.Now.UtcDateTime,
                 MimeType = model.MimeType,  
                 Owner = user,
-                Path = pathAttach
+                Path = pathAttach,
+                Size = model.Size
             };
 
             await _context.Avatars.AddAsync(avatar);

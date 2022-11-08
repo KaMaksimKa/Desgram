@@ -9,6 +9,7 @@
         public DateTimeOffset CreatedDate { get; set; }
         public Guid OwnerId { get; set; }
         public DateTimeOffset? DeletedDate { get; set; }
+        public long Size { get; set; }
 
 
         public virtual User? Owner { get; set; }

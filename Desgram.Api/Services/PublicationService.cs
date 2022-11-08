@@ -45,7 +45,8 @@ namespace Desgram.Api.Services
                         CreatedDate = DateTimeOffset.Now.UtcDateTime,
                         Name = meta.Name,
                         Path = _attachService.MoveFromTempToAttach(meta),
-                        Owner = user
+                        Owner = user,
+                        Size = meta.Size,
                     }).ToList(),
                 HashTags = hashTags,
                 DeletedDate = null
