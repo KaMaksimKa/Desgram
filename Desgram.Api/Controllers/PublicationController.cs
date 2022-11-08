@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Desgram.Api.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]/[action]")]
     public class PublicationController:ControllerBase
@@ -17,7 +18,6 @@ namespace Desgram.Api.Controllers
             _publicationService = publicationService;
         }
 
-        [Authorize]
         [HttpPost]
         public async Task CreatePublication(CreatePublicationModel model)
         {
@@ -25,7 +25,6 @@ namespace Desgram.Api.Controllers
             await _publicationService.CreatePublicationAsync(model, userId);
         }
 
-        [Authorize]
         [HttpPost]
         public async Task DeletePublication(Guid publicationId)
         {
@@ -46,7 +45,6 @@ namespace Desgram.Api.Controllers
             return await _publicationService.GetPublicationByHashTagAsync(hashTag);
         }
 
-        [Authorize]
         [HttpPost]
         public async Task AddComment(CreateCommentModel model)
         {
@@ -54,7 +52,6 @@ namespace Desgram.Api.Controllers
             await _publicationService.AddComment(model, userId);
         }
 
-        [Authorize]
         [HttpPost]
         public async Task DeleteComment(Guid commentId)
         {
@@ -68,14 +65,14 @@ namespace Desgram.Api.Controllers
             return await _publicationService.GetComments(publicationId);
         }
 
-        [Authorize]
         [HttpPost]
         public async Task AddLikePublication(Guid publicationId)
         {
             var userId = User.GetUserId();
             await _publicationService.AddLikePublication(publicationId,userId);
         }
-        [Authorize]
+       
+
         [HttpPost]
         public async Task DeleteLikePublication(Guid publicationId)
         {
@@ -83,14 +80,15 @@ namespace Desgram.Api.Controllers
             await _publicationService.DeleteLikePublication(publicationId, userId);
         }
 
-        [Authorize]
+
         [HttpPost]
         public async Task AddLikeComment(Guid commentId)
         {
             var userId = User.GetUserId();
             await _publicationService.AddLikeComment(commentId, userId);
         }
-        [Authorize]
+  
+
         [HttpPost]
         public async Task DeleteLikeComment(Guid commentId)
         {

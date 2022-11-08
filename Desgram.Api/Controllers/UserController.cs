@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Desgram.Api.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]/[action]")]
     public class UserController : ControllerBase
@@ -24,7 +25,6 @@ namespace Desgram.Api.Controllers
             return Ok();
         }
 
-        [Authorize]
         [HttpGet]
         public async Task<UserModel> GetCurrentUser()
         {
@@ -39,7 +39,6 @@ namespace Desgram.Api.Controllers
             return await _userService.GetUsersAsync();
         }
 
-        [Authorize]
         [HttpPost]
         public async Task AddAvatar(MetadataModel model)
         {
@@ -48,7 +47,6 @@ namespace Desgram.Api.Controllers
             await _userService.AddAvatarAsync(model,userId);
         }
 
-        [Authorize]
         [HttpGet]
         public async Task<FileResult> GetAvatar()
         {

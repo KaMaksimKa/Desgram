@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Desgram.Api.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]/[action]")]
     public class AuthController : ControllerBase
@@ -17,12 +18,14 @@ namespace Desgram.Api.Controllers
             _authService = authService;
         }
 
+        [AllowAnonymous]
         [HttpPost]
         public async Task<TokenModel> Token(TokenRequestModel model)
         {
             return await _authService.GetTokenByCredentials(model.UserName, model.Password);
         }
 
+        [AllowAnonymous]
         [HttpPost]
         public async Task<TokenModel> RefreshToken(RefreshTokenRequestModel model)
         {
@@ -30,7 +33,6 @@ namespace Desgram.Api.Controllers
         }
 
 
-        [Authorize]
         [HttpPost]
         public async Task Logout()
         {
@@ -38,7 +40,6 @@ namespace Desgram.Api.Controllers
             await _authService.LogoutBySessionId(sessionId);
         }
 
-        [Authorize]
         [HttpPost]
         public async Task LogoutAllDevice()
         {

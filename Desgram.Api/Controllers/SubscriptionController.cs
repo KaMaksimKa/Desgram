@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Desgram.Api.Controllers
 {
+    [Authorize]
     [Route("api/[controller]/[action]")]
     [ApiController]
     public class SubscriptionController : ControllerBase
@@ -18,8 +19,6 @@ namespace Desgram.Api.Controllers
             _subscriptionService = subscriptionService;
         }
 
-        [Authorize]
-
         [HttpPost]
         public async Task Subscribe(string subscriptionUserName)
         {
@@ -27,7 +26,6 @@ namespace Desgram.Api.Controllers
             await _subscriptionService.Subscribe(userId, subscriptionUserName);
         }
 
-        [Authorize]
         [HttpPost]
         public async Task Unsubscribe(string subscriptionUserName)
         {
@@ -35,7 +33,6 @@ namespace Desgram.Api.Controllers
             await _subscriptionService.Unsubscribe(userId, subscriptionUserName);
         }
 
-        [Authorize]
         [HttpGet]
         public Task<List<SubscriptionModel>> GetSubscriptions()
         {
@@ -43,7 +40,6 @@ namespace Desgram.Api.Controllers
             return _subscriptionService.GetSubscriptions(userId);
         }
 
-        [Authorize]
         [HttpGet]
         public Task<List<SubscriptionModel>> GetSubscribers()
         {
