@@ -23,7 +23,7 @@ namespace Desgram.Api
                         s => s.AttachPublications.Select(i => new PublicationContentModel()
                         {
                             Id = i.Id,
-                            AttachPath =$"api/Attach/DisplayAttachById?id={i.Id}",
+                            Url =$"api/Attach/DisplayAttachById?id={i.Id}",
                             MimeType = i.MimeType
                         }).ToList()))
                 .ForMember(d=>d.UserName,
