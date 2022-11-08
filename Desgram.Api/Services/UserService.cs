@@ -76,7 +76,7 @@ namespace Desgram.Api.Services
         {
             var pathAttach = _attachService.MoveFromTempToAttach(model);
 
-            var user = await GetByIdAsync(userId);
+            var user = await GetUserWithAvatarByIdAsync(userId);
 
             var avatar = new Avatar()
             {
@@ -90,6 +90,11 @@ namespace Desgram.Api.Services
                 Size = model.Size
             };
 
+            if (user.Avatar != null)
+            {
+                _context.Avatars.Remove(user.Avatar);
+            }
+            
             await _context.Avatars.AddAsync(avatar);
             await _context.SaveChangesAsync();
         }
