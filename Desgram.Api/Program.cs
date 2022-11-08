@@ -1,10 +1,11 @@
 using Desgram.Api;
 using Desgram.Api.Config;
-using Desgram.Api.Infrastructure;
+using Desgram.Api.Infrastructure.MiddleWares;
 using Desgram.Api.Services;
 using Desgram.Api.Services.Interfaces;
 using Desgram.DAL;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -64,6 +65,7 @@ builder.Services.AddDbContext<ApplicationContext>(optionsBuilder =>
 });
 
 builder.Services.AddAutoMapper(typeof(MapperProfile).Assembly);
+builder.Services.AddSingleton<IActionContextAccessor, ActionContextAccessor>();
 
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAttachService,AttachService>();
@@ -71,6 +73,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IPublicationService, PublicationService>();
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 builder.Services.AddScoped<IEmailSender, EmailSender>();
+builder.Services.AddScoped<IUrlService,UrlService>();
 
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>

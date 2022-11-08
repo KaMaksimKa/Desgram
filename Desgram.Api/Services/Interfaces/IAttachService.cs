@@ -1,4 +1,4 @@
-﻿using Desgram.Api.Models;
+﻿using Desgram.Api.Models.Attach;
 
 namespace Desgram.Api.Services.Interfaces
 {
@@ -8,7 +8,7 @@ namespace Desgram.Api.Services.Interfaces
 
         public string MoveFromTempToAttach(MetadataModel model);
 
-        public Task<AttachModel> GetAttachById(Guid id);
+        public Task<AttachWithPathModel> GetAttachById(Guid id);
 
     }
 }

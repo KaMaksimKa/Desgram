@@ -1,5 +1,5 @@
 ﻿using Desgram.Api.Infrastructure;
-using Desgram.Api.Models;
+using Desgram.Api.Models.Subscription;
 using Desgram.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -41,7 +41,7 @@ namespace Desgram.Api.Controllers
         }
 
         [HttpGet]
-        public Task<List<SubscriptionModel>> GetSubscribers()
+        public Task<List<SubscriberModel>> GetSubscribers()
         {
             var userId = User.GetUserId();
             return _subscriptionService.GetSubscribers(userId);

@@ -1,4 +1,4 @@
-﻿namespace Desgram.Api.Models
+﻿namespace Desgram.Api.Models.Token
 {
     public class TokenModel
     {

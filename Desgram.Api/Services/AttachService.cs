@@ -1,8 +1,9 @@
 ﻿using Desgram.Api.Services.Interfaces;
-using Desgram.Api.Models;
 using Desgram.DAL;
 using Desgram.SharedKernel.Exceptions;
 using Microsoft.EntityFrameworkCore;
+using System.IO;
+using Desgram.Api.Models.Attach;
 
 namespace Desgram.Api.Services
 {
@@ -26,7 +27,7 @@ namespace Desgram.Api.Services
                 Size = file.Length
             };
 
-            var path = Path.Combine(Path.GetTempPath(), "Desgram",_defaultPathImage,metadata.Id.ToString());
+            var path = GetTempPathById(metadata.Id);
 
             var fileInfo = new FileInfo(path);
 
@@ -34,6 +35,8 @@ namespace Desgram.Api.Services
             {
                 fileInfo.Directory.Create();
             }
+
+            
 
             using (var fileStream = new FileStream(path,FileMode.Create))
             {
@@ -43,9 +46,13 @@ namespace Desgram.Api.Services
             return metadata;
         }
 
+        private string GetTempPathById(Guid id)
+        {
+           return Path.Combine(Path.GetTempPath(), "Desgram", _defaultPathImage, id.ToString());
+        }
         public string MoveFromTempToAttach(MetadataModel model)
         {
-            var pathTemp =  Path.Combine(Path.GetTempPath(), "Desgram", _defaultPathImage, model.Id.ToString());
+            var pathTemp = GetTempPathById(model.Id); ;
             var fileInfoTemp = new FileInfo(pathTemp);
 
             if (!fileInfoTemp.Exists)
@@ -53,7 +60,8 @@ namespace Desgram.Api.Services
                 throw new CustomException("file not found");
             }
 
-            var pathAttach = Path.Combine(Directory.GetCurrentDirectory(),_defaultPathImage,model.Id.ToString());
+            var pathAttach = GetAttachPathById(model.Id);
+
             var fileInfoAttach = new FileInfo(pathAttach);
 
             if (fileInfoAttach.Directory is { Exists: false })
@@ -66,7 +74,11 @@ namespace Desgram.Api.Services
             return pathAttach;
         }
 
-        public async Task<AttachModel> GetAttachById(Guid id)
+        public string GetAttachPathById(Guid id)
+        {
+            return Path.Combine(Directory.GetCurrentDirectory(), _defaultPathImage, id.ToString());
+        }
+        public async Task<AttachWithPathModel> GetAttachById(Guid id)
         {
             var attach =await _context.Attaches.FirstOrDefaultAsync(x => x.Id == id);
             if (attach == null)
@@ -74,8 +86,9 @@ namespace Desgram.Api.Services
                 throw new CustomException("attach not found");
             }
 
-            return new AttachModel()
+            return new AttachWithPathModel()
             {
+                Id = attach.Id,
                 FilePath = attach.Path,
                 MimeType = attach.MimeType,
                 Name = attach.Name

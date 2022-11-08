@@ -10,13 +10,11 @@
         public string? Biography { get; set; }
         public DateTimeOffset? BirthDate { get; init; }
         public DateTimeOffset CreatedDate { get; init; }
-        public int AmountSubscriptions { get; set; }
-        public int AmountSubscribers { get; set; }
 
         public virtual Avatar? Avatar { get; set; }
-        public virtual List<UserSubscription>? Subscriptions { get; set; }
-        public virtual List<UserSubscription>? Subscribers { get; set; }
-        public virtual List<UserSession>? Sessions { get; set; }
+        public virtual List<UserSubscription> Subscriptions { get; set; } = null!;
+        public virtual ICollection<UserSubscription> Subscribers { get; set; } = null!;
+        public virtual List<UserSession> Sessions { get; set; } = null!;
 
 
     }

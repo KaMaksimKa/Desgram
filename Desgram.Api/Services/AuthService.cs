@@ -1,5 +1,4 @@
 ﻿using Desgram.Api.Config;
-using Desgram.Api.Models;
 using Desgram.Api.Services.Interfaces;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -11,6 +10,7 @@ using SharedKernel;
 using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
 using Desgram.Api.Infrastructure;
+using Desgram.Api.Models.Token;
 
 namespace Desgram.Api.Services
 {

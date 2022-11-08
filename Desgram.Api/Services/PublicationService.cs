@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
-using Desgram.Api.Models;
+using AutoMapper.QueryableExtensions;
+using Desgram.Api.Models.Publication;
 using Desgram.Api.Services.Interfaces;
 using Desgram.DAL;
 using Desgram.DAL.Entities;
@@ -13,12 +14,15 @@ namespace Desgram.Api.Services
         private readonly ApplicationContext _context;
         private readonly IAttachService _attachService;
         private readonly IMapper _mapper;
+        private readonly IUrlService _urlService;
 
-        public PublicationService(ApplicationContext context,IAttachService attachService,IMapper mapper)
+        public PublicationService(ApplicationContext context,IAttachService attachService,
+            IMapper mapper,IUrlService urlService)
         {
             _context = context;
             _attachService = attachService;
             _mapper = mapper;
+            _urlService = urlService;
         }
         
         public async Task CreatePublicationAsync(CreatePublicationModel model, Guid userId)
@@ -32,12 +36,10 @@ namespace Desgram.Api.Services
                 Id = Guid.NewGuid(),
                 User = user,
                 Description = model.Description,
-                AmountLikes = 0,
-                AmountComments = 0,
                 CreatedDate = DateTimeOffset.Now.UtcDateTime,
                 Comments = new List<Comment>(),
                 LikesPublication = new List<LikePublication>(),
-                AttachPublications = model.MetadataModels
+                AttachesPublication = model.MetadataModels
                     .Select(meta => new AttachPublication()
                     {
                         Id = Guid.NewGuid(),
@@ -75,7 +77,6 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
-
         private async Task<List<HashTag>> GetHashTags(List<string> hashTagsString)
         {
             var hashTagsDb = await _context.HashTags.ToListAsync();
@@ -105,12 +106,19 @@ namespace Desgram.Api.Services
 
         public async Task<List<PublicationModel>> GetAllPublicationsAsync()
         {
-            var publications = (await _context.Publications
-                    .Include(p=>p.AttachPublications)
-                    .Include(p=>p.User)
-                    .Include(p =>p.HashTags)
-                    .Where(p=>p.DeletedDate == null).ToListAsync())
-                .Select(p=> _mapper.Map<PublicationModel>(p)).ToList();
+            var publications =await _context.Publications
+                .Where(p => p.DeletedDate == null)
+                .ProjectTo<PublicationModel>(_mapper.ConfigurationProvider)
+                .ToListAsync();
+
+            foreach (var publication in publications)
+            {
+                foreach (var contentModel in publication.AttachesPublication)
+                {
+                    contentModel.Url = _urlService.GetUrlDisplayAttachById(contentModel.Id);
+                }
+            }
+
             return publications;
         }
 
@@ -125,14 +133,12 @@ namespace Desgram.Api.Services
                 Id = Guid.NewGuid(),
                 User = user,
                 Publication = publication,
-                AmountLikes = 0,
                 Content = model.Content,
                 LikesComment = new List<LikeComment>(),
                 CreatedDate = DateTimeOffset.Now.UtcDateTime,
                 DeletedDate = null
             };
 
-            publication.AmountComments += 1;
             await _context.Comments.AddAsync(comment);
 
             await _context.SaveChangesAsync();
@@ -157,7 +163,6 @@ namespace Desgram.Api.Services
                 throw new CustomException("you don't have enough rights");
             }
 
-            comment.Publication.AmountComments -= 1;
             comment.DeletedDate = DateTimeOffset.Now.UtcDateTime;
 
             await _context.SaveChangesAsync();
@@ -184,7 +189,6 @@ namespace Desgram.Api.Services
                 DeletedDate = null
             };
 
-            publication.AmountLikes += 1;
             await _context.LikesPublications.AddAsync(like);
        
             await _context.SaveChangesAsync();
@@ -209,7 +213,6 @@ namespace Desgram.Api.Services
                 throw new CustomException("you don't have enough rights");
             }
 
-            like.Publication.AmountLikes -= 1;
             like.DeletedDate = DateTimeOffset.Now.UtcDateTime;
 
             await _context.SaveChangesAsync();
@@ -240,7 +243,6 @@ namespace Desgram.Api.Services
                 DeletedDate = null
             };
 
-            comment.AmountLikes += 1;
             await _context.LikesComments.AddAsync(like);
 
             await _context.SaveChangesAsync();
@@ -261,8 +263,6 @@ namespace Desgram.Api.Services
             }
 
             
-
-            comment.AmountLikes -= 1;
             like.DeletedDate = DateTimeOffset.Now.UtcDateTime;
 
             await _context.SaveChangesAsync();
@@ -272,26 +272,18 @@ namespace Desgram.Api.Services
         public async Task<List<CommentModel>> GetComments(Guid publicationId)
         {
             var comments = await _context.Comments
-                .Include(c=>c.User)
-                .Where(c=>c.DeletedDate == null && c.PublicationId == publicationId)
-                .ToListAsync();
+                .Where(c => c.PublicationId == publicationId && c.DeletedDate == null)
+                .ProjectTo<CommentModel>(_mapper.ConfigurationProvider).ToListAsync();
 
-            return comments.Select(c=> new CommentModel()
-            {
-                AmountLikes = c.AmountLikes,
-                Content = c.Content,
-                Id = c.Id,
-                UserName = c.User.Name
-            }).ToList();
+            return comments;
         }
 
         public async Task<List<PublicationModel>> GetPublicationByHashTagAsync(string hashTag)
         {
             var publication = await _context.Publications
-                .Include(p=>p.User)
-                .Include(p=>p.HashTags)
-                .Include(p=>p.AttachPublications)
-                .Where(p =>p.DeletedDate == null && p.HashTags.Any(p => p.Title == hashTag)).ToListAsync();
+                .Where(p =>p.DeletedDate == null && p.HashTags.Any(p => p.Title == hashTag))
+                .ProjectTo<PublicationModel>(_mapper.ConfigurationProvider)
+                .ToListAsync();
             return publication.Select(p => _mapper.Map<PublicationModel>(p)).ToList();
         }
 

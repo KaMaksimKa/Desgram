@@ -11,6 +11,6 @@ namespace Desgram.DAL.Entities
         public Guid Id { get; set; }
         public string Title { get; set; } = null!;
 
-        public virtual List<Publication>? Publications { get; set; }
+        public virtual ICollection<Publication> Publications { get; set; } = null!;
     }
 }

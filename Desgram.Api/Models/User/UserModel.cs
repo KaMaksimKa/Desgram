@@ -1,4 +1,6 @@
-﻿namespace Desgram.Api.Models
+﻿using Desgram.Api.Models.Attach;
+
+namespace Desgram.Api.Models.User
 {
     public class UserModel
     {
@@ -6,6 +8,6 @@
         public string Email { get; init; } = null!;
         public int AmountSubscriptions { get; set; }
         public int AmountSubscribers { get; set; }
-
+        public AttachWithUrlModel? Avatar { get; set; }
     }
 }

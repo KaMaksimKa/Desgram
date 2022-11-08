@@ -1,5 +1,6 @@
 ﻿using Desgram.Api.Infrastructure;
-using Desgram.Api.Models;
+using Desgram.Api.Models.Attach;
+using Desgram.Api.Models.User;
 using Desgram.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,10 +13,12 @@ namespace Desgram.Api.Controllers
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;
+        private readonly IUrlService _urlService;
 
-        public UserController(IUserService userService)
+        public UserController(IUserService userService,IUrlService urlService)
         {
             _userService = userService;
+            _urlService = urlService;
         }
 
         [HttpPost]
@@ -47,14 +50,24 @@ namespace Desgram.Api.Controllers
             await _userService.AddAvatarAsync(model,userId);
         }
 
-        [HttpGet]
+        /*[HttpGet]
         public async Task<FileResult> GetAvatar()
         {
             var userId = User.GetUserId();
 
             var attach =  await _userService.GetAvatarAsync(userId);
+            var fileStream = new FileStream(attach.FilePath, FileMode.Open);
 
-            return File(await System.IO.File.ReadAllBytesAsync(attach.FilePath) ,attach.MimeType);
+            return File(fileStream, attach.MimeType);
+        }*/
+        [HttpGet]
+        public async Task<IActionResult> GetAvatar()
+        {
+            var userId = User.GetUserId();
+
+            var attach = await _userService.GetAvatarAsync(userId);
+
+            return Redirect(_urlService.GetUrlDisplayAttachById(attach.Id));
         }
 
     }

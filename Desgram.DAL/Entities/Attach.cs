@@ -12,6 +12,6 @@
         public long Size { get; set; }
 
 
-        public virtual User? Owner { get; set; }
+        public virtual User Owner { get; set; } = null!;
     }
 }

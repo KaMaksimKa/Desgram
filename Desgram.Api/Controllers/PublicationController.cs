@@ -1,5 +1,5 @@
 ﻿using Desgram.Api.Infrastructure;
-using Desgram.Api.Models;
+using Desgram.Api.Models.Publication;
 using Desgram.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -32,12 +32,13 @@ namespace Desgram.Api.Controllers
             await _publicationService.DeletePublication(publicationId,userId);
         }
 
-
+        [AllowAnonymous]
         [HttpGet]
         public async Task<List<PublicationModel>> GetPublications()
         {
             return await _publicationService.GetAllPublicationsAsync();
         }
+
 
         [HttpGet]
         public async Task<List<PublicationModel>> GetPublicationsByHashTag(string hashTag)
@@ -59,6 +60,7 @@ namespace Desgram.Api.Controllers
             await _publicationService.DeleteComment(commentId, userId);
         }
 
+        [AllowAnonymous]
         [HttpGet]
         public async Task<List<CommentModel>> GetComments(Guid publicationId)
         {

@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Desgram.Api.Models
+namespace Desgram.Api.Models.User
 {
     public class CreateUserModel
     {

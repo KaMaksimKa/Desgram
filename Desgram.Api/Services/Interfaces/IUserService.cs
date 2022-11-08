@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
-using Desgram.Api.Models;
+using Desgram.Api.Models.Attach;
+using Desgram.Api.Models.User;
 using Desgram.DAL.Entities;
 
 namespace Desgram.Api.Services.Interfaces
@@ -10,7 +11,7 @@ namespace Desgram.Api.Services.Interfaces
         public Task<List<UserModel>> GetUsersAsync();
         public Task<UserModel> GetUserByIdAsync(Guid userId);
         public Task AddAvatarAsync(MetadataModel model,Guid userId);
-        public Task<AttachModel> GetAvatarAsync(Guid userId);
+        public Task<AttachWithPathModel> GetAvatarAsync(Guid userId);
 
     }
 }

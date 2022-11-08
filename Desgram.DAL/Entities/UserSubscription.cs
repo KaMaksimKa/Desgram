@@ -14,8 +14,8 @@ namespace Desgram.DAL.Entities
         public Guid SubscriptionId { get; set; }
         public DateTimeOffset? DeletedDate { get; set; }
 
-        public virtual User? Subscriber { get; set; }
-        public virtual User? Subscription { get; set; }
-       
+        public virtual User Subscriber { get; set; } = null!;
+        public virtual User Subscription { get; set; } = null!;
+
     }
 }

@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using Desgram.DAL.Entities;
 
-namespace Desgram.Api.Models
+namespace Desgram.Api.Models.Publication
 {
     public class CreateCommentModel
     {

@@ -7,6 +7,6 @@
         public DateTimeOffset CreatedDate { get; set; }
         public DateTimeOffset? DeletedDate { get; set; }
 
-        public User? User { get; set; }
+        public User User { get; set; } = null!;
     }
 }

@@ -3,6 +3,7 @@ using System;
 using Desgram.DAL;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,10 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Desgram.Api.Migrations
 {
     [DbContext(typeof(ApplicationContext))]
-    partial class ApplicationContextModelSnapshot : ModelSnapshot
+    [Migration("20221108190153_DeleteAmoutsSub")]
+    partial class DeleteAmoutsSub
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -419,7 +421,7 @@ namespace Desgram.Api.Migrations
                         .IsRequired();
 
                     b.HasOne("Desgram.DAL.Entities.Publication", "Publication")
-                        .WithMany("AttachesPublication")
+                        .WithMany("AttachPublications")
                         .HasForeignKey("PublicationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -485,7 +487,7 @@ namespace Desgram.Api.Migrations
 
             modelBuilder.Entity("Desgram.DAL.Entities.Publication", b =>
                 {
-                    b.Navigation("AttachesPublication");
+                    b.Navigation("AttachPublications");
 
                     b.Navigation("Comments");
 

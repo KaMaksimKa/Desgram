@@ -1,4 +1,6 @@
-﻿using Desgram.Api.Models;
+﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
+using Desgram.Api.Models.Subscription;
 using Desgram.Api.Services.Interfaces;
 using Desgram.DAL;
 using Desgram.DAL.Entities;
@@ -10,10 +12,12 @@ namespace Desgram.Api.Services
     public class SubscriptionService:ISubscriptionService
     {
         private readonly ApplicationContext _context;
+        private readonly IMapper _mapper;
 
-        public SubscriptionService(ApplicationContext context)
+        public SubscriptionService(ApplicationContext context,IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
         public async Task Subscribe(Guid subscriberId, string subscriptionUserName)
@@ -36,8 +40,6 @@ namespace Desgram.Api.Services
                 DeletedDate = null
             };
 
-            subscriber.AmountSubscriptions++;
-            subscription.AmountSubscribers++;
 
             await _context.UserSubscriptions.AddAsync(subscribe);
             await _context.SaveChangesAsync();
@@ -56,9 +58,6 @@ namespace Desgram.Api.Services
             }
 
 
-            subscriber.AmountSubscriptions--;
-            subscription.AmountSubscribers--;
-
             subscribe.DeletedDate = DateTimeOffset.Now.UtcDateTime;
             
             await _context.SaveChangesAsync();
@@ -69,29 +68,23 @@ namespace Desgram.Api.Services
             var user = await GetUserByIdAsync(userId);
 
             var subscriptions =await _context.UserSubscriptions
-                .Include(s=>s.Subscription)
                 .Where(s => s.SubscriberId == user.Id && s.DeletedDate == null)
+                .ProjectTo<SubscriptionModel>(_mapper.ConfigurationProvider)
                 .ToListAsync();
 
-            return subscriptions.Select(s => new SubscriptionModel()
-            {
-                UserName = s.Subscription.Name
-            }).ToList();
+            return subscriptions;
         }
 
-        public async Task<List<SubscriptionModel>> GetSubscribers(Guid userId)
+        public async Task<List<SubscriberModel>> GetSubscribers(Guid userId)
         {
             var user = await GetUserByIdAsync(userId);
             
             var subscribers =await _context.UserSubscriptions
-                .Include(s => s.Subscriber)
                 .Where(s => s.SubscriptionId == user.Id && s.DeletedDate == null)
+                .ProjectTo<SubscriberModel>(_mapper.ConfigurationProvider)
                 .ToListAsync();
 
-            return subscribers.Select(s => new SubscriptionModel()
-            {
-                UserName = s.Subscriber.Name
-            }).ToList();
+            return subscribers;
 
         }
 

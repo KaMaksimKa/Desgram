@@ -1,5 +1,5 @@
 ﻿using Desgram.Api.Infrastructure;
-using Desgram.Api.Models;
+using Desgram.Api.Models.Token;
 using Desgram.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

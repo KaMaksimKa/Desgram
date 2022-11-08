@@ -2,7 +2,7 @@
 using Desgram.DAL;
 using Microsoft.EntityFrameworkCore;
 
-namespace Desgram.Api.Infrastructure
+namespace Desgram.Api.Infrastructure.MiddleWares
 {
     public class SessionValidator
     {
@@ -18,7 +18,7 @@ namespace Desgram.Api.Infrastructure
             var sessionIdString = context.User.Claims.FirstOrDefault(x => x.Type == AppClaimTypes.SessionId)?.Value;
             if (!Guid.TryParse(sessionIdString, out var sessionId) ||
                 await applicationContext.UserSessions
-                    .FirstOrDefaultAsync(u => u.Id == sessionId) is {IsActive:true})
+                    .FirstOrDefaultAsync(u => u.Id == sessionId) is { IsActive: true })
             {
                 await _next(context);
             }

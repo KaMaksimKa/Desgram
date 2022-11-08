@@ -1,11 +1,10 @@
-﻿namespace Desgram.Api.Models
+﻿namespace Desgram.Api.Models.Attach
 {
-    public class MetadataModel
+    public class AttachWithPathModel
     {
         public Guid Id { get; set; }
         public string Name { get; set; } = null!;
         public string MimeType { get; set; } = null!;
-        public long Size { get; set; }
-
+        public string FilePath { get; set; } = null!;
     }
 }

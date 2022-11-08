@@ -1,5 +1,7 @@
 ﻿using AutoMapper;
-using Desgram.Api.Models;
+using AutoMapper.QueryableExtensions;
+using Desgram.Api.Models.Attach;
+using Desgram.Api.Models.User;
 using Desgram.Api.Services.Dto;
 using Desgram.Api.Services.Interfaces;
 using Desgram.DAL;
@@ -15,15 +17,17 @@ namespace Desgram.Api.Services
         private readonly ApplicationContext _context;
         private readonly IAttachService _attachService;
         private readonly IEmailSender _emailSender;
+        private readonly IUrlService _urlService;
 
 
         public UserService(IMapper mapper,ApplicationContext context,
-            IAttachService attachService,IEmailSender emailSender)
+            IAttachService attachService,IEmailSender emailSender,IUrlService urlService)
         {
             _mapper = mapper;
             _context = context;
             _attachService = attachService;
             _emailSender = emailSender;
+            _urlService = urlService;
         }
 
         public async Task CreateUserAsync(CreateUserModel createUser)
@@ -35,15 +39,37 @@ namespace Desgram.Api.Services
 
         public async Task<List<UserModel>> GetUsersAsync()
         {
-            var users = (await GetAll()).ToList();
-            return users.Select(u => _mapper.Map<UserModel>(u)).ToList(); 
+            var users = await _context.Users
+                .ProjectTo<UserModel>(_mapper.ConfigurationProvider)
+                .ToListAsync();
+
+            foreach (var user in users)
+            {
+                if (user.Avatar != null)
+                {
+                    user.Avatar.Url = _urlService.GetUrlDisplayAttachById(user.Avatar.Id);
+                }
+            }
+            return users;
         }
 
         public async Task<UserModel> GetUserByIdAsync(Guid userId)
         {
-            var user = await GetByIdAsync(userId);
+            var user = await _context.Users
+                .Where(u=>u.Id == userId)
+                .ProjectTo<UserModel>(_mapper.ConfigurationProvider)
+                .FirstOrDefaultAsync();
+            if (user == null)
+            {
+                throw new CustomException("user not found");
+            }
 
-            return _mapper.Map<UserModel>(user);
+            if (user.Avatar != null)
+            {
+                user.Avatar.Url = _urlService.GetUrlDisplayAttachById(user.Avatar.Id);
+            }
+          
+            return user;
         }
 
         public async Task AddAvatarAsync(MetadataModel model,Guid userId)
@@ -68,7 +94,7 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task<AttachModel> GetAvatarAsync(Guid userId)
+        public async Task<AttachWithPathModel> GetAvatarAsync(Guid userId)
         {
             var avatar =(await GetUserWithAvatarByIdAsync(userId)).Avatar;
             if (avatar == null)
@@ -76,8 +102,9 @@ namespace Desgram.Api.Services
                 throw new CustomException("avatar is not exist");
             }
 
-            return new AttachModel()
+            return new AttachWithPathModel()
             {
+                Id = avatar.Id,
                 FilePath = avatar.Path,
                 MimeType = avatar.MimeType,
                 Name = avatar.Name
@@ -129,10 +156,6 @@ namespace Desgram.Api.Services
             }
 
             return user;
-        }
-        private async Task<IEnumerable<User>> GetAll()
-        {
-            return await _context.Users.AsNoTracking().ToListAsync();
         }
 
         private async Task CreateAsync(User user)

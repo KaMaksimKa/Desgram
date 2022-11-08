@@ -1,4 +1,4 @@
-﻿using Desgram.Api.Models;
+﻿using Desgram.Api.Models.Attach;
 using Desgram.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -37,11 +37,15 @@ namespace Desgram.Api.Controllers
             return await _attachService.SaveToTempAsync(file);
         }
 
+        [AllowAnonymous]
         [HttpGet]
         public async Task<FileResult> DisplayAttachById(Guid id)
         {
             var attachModel = await _attachService.GetAttachById(id);
-            return File(await System.IO.File.ReadAllBytesAsync(attachModel.FilePath), attachModel.MimeType);
+            var fileStream = new FileStream(attachModel.FilePath, FileMode.Open);
+            return File(fileStream, attachModel.MimeType);
+            
+           
         }
 
         [HttpGet]
@@ -49,7 +53,8 @@ namespace Desgram.Api.Controllers
         {
             var attachModel = await _attachService.GetAttachById(id);
 
-            return File(await System.IO.File.ReadAllBytesAsync(attachModel.FilePath), attachModel.MimeType, fileDownloadName:attachModel.Name); ;
+            var fileStream = new FileStream(attachModel.FilePath, FileMode.Open);
+            return File(fileStream, attachModel.MimeType, fileDownloadName: attachModel.Name);
         }
 
     }
