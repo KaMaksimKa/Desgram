@@ -16,5 +16,6 @@ namespace Desgram.Api.Services.Interfaces
         public Task<List<CommentModel>> GetCommentsAsync(Guid publicationId);
         public Task<List<PublicationModel>> GetPublicationByHashTagAsync(string hashTag);
         public Task<List<PublicationModel>> GetSubscriptionsFeedAsync(Guid userId,int skip,int take);
+        public Task UpdatePublicationAsync(UpdatePublicationModel model, Guid userId);
     }
 }

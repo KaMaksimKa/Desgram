@@ -9,12 +9,14 @@ namespace Desgram.Api.Services.Interfaces
         public Task<List<UserModel>> GetUsersAsync();
         public Task<UserModel> GetUserByIdAsync(Guid userId);
         public Task AddAvatarAsync(MetadataModel model,Guid userId);
-        public Task ConfirmEmailByCodeAsync(string code,Guid unconfirmedUserId);
-        public Task SendEmailConfirmationCodeAsync(Guid unconfirmedUserId);
+        public Task ConfirmUserAsync(string code,Guid unconfirmedUserId);
+        public Task SendSingUpCodeAsync(Guid unconfirmedUserId);
         public Task UpdateProfileAsync(ProfileModel model,Guid userId);
         public Task ChangePasswordAsync(ChangePasswordModel model,Guid userId);
-        public Task ChangeEmailAsync(ChangeEmailModel model,Guid userId);
-        public Task ChangeUserName(string newUserName,Guid userId);
+        public Task ChangeUserNameAsync(ChangeUserNameModel model, Guid userId);
+        public Task<Guid> ChangeEmailAsync(ChangeEmailModel model, Guid userId);
+        public Task ConfirmEmailAsync(string code, Guid unconfirmedEmailId, Guid userId);
+        public Task SendChangeEmailCodeAsync(Guid unconfirmedEmailId, Guid userId);
 
     }
 }

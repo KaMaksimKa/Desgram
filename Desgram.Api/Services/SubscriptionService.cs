@@ -47,7 +47,6 @@ namespace Desgram.Api.Services
 
         public async Task UnsubscribeAsync(Guid subscriberId, string subscriptionUserName)
         {
-            var subscriber = await GetUserByIdAsync(subscriberId);
             var subscription = await GetUserByNameAsync(subscriptionUserName);
 
             if (await _context.UserSubscriptions

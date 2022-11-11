@@ -20,6 +20,7 @@ namespace Desgram.DAL
         public DbSet<UserSubscription> UserSubscriptions { get; init; } = null!;
         public DbSet<BlockingUser> BlockingUsers { get; init; } = null!;
         public DbSet<UnconfirmedUser> UnconfirmedUsers { get; init; } = null!;
+        public DbSet<UnconfirmedEmail> UnconfirmedEmails { get; init; } = null!;
 
         public ApplicationContext(DbContextOptions<ApplicationContext> options) :base(options) 
         {

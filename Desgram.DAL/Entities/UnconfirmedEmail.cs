@@ -6,16 +6,15 @@ using System.Threading.Tasks;
 
 namespace Desgram.DAL.Entities
 {
-    public class UnconfirmedUser
+    public class UnconfirmedEmail
     {
         public Guid Id { get; set; }
-        public string Name { get; set; } = null!;
         public string Email { get; set; } = null!;
-        public string PasswordHash { get; set; } = null!;
         public string CodeHash { get; set; } = null!;
         public DateTimeOffset ExpiredDate { get; set; }
         public DateTimeOffset? DeletedDate { get; set; }
+        public Guid UserId { get; set; }
 
-
+        public virtual User User { get; set; } = null!;
     }
 }

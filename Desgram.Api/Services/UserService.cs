@@ -51,7 +51,7 @@ namespace Desgram.Api.Services
             {
                 Id = Guid.NewGuid(),
                 CodeHash = HashHelper.GetHash(code),
-                CreatedDate = DateTimeOffset.Now.UtcDateTime,
+                ExpiredDate = DateTimeOffset.Now.UtcDateTime.AddMinutes(5),
                 Email = createUser.Email,
                 Name = createUser.Name,
                 PasswordHash = HashHelper.GetHash(createUser.Password)
@@ -60,22 +60,16 @@ namespace Desgram.Api.Services
             await _context.UnconfirmedUsers.AddAsync(unconfirmedUser);
             await _context.SaveChangesAsync();
 
-            await SendEmailConfirmationCodeAsync(unconfirmedUser.Id);
+            await SendSingUpCodeAsync(unconfirmedUser.Id);
 
             return unconfirmedUser.Id;
         }
 
-        public async Task ConfirmEmailByCodeAsync(string code, Guid unconfirmedUserId)
+        public async Task ConfirmUserAsync(string code, Guid unconfirmedUserId)
         {
-            var unconfirmedUser = await _context.UnconfirmedUsers
-                .FirstOrDefaultAsync(u => u.Id == unconfirmedUserId && u.DeletedDate == null);
+            var unconfirmedUser = await GetUnconfirmedUserById(unconfirmedUserId);
 
-            if (unconfirmedUser == null)
-            {
-                throw new CustomException("unconfirmedUser not found");
-            }
-
-            if (DateTimeOffset.Now.UtcDateTime - unconfirmedUser.CreatedDate > TimeSpan.FromMinutes(5))
+            if (DateTimeOffset.Now.UtcDateTime > unconfirmedUser.ExpiredDate)
             {
                 throw new CustomException("code has expired");
             }
@@ -111,14 +105,13 @@ namespace Desgram.Api.Services
 
         }
 
-        public async Task SendEmailConfirmationCodeAsync(Guid unconfirmedUserId)
+        public async Task SendSingUpCodeAsync(Guid unconfirmedUserId)
         {
-            var unconfirmedUser = await _context.UnconfirmedUsers
-                .FirstOrDefaultAsync(u => u.Id == unconfirmedUserId && u.DeletedDate == null);
+            var unconfirmedUser = await GetUnconfirmedUserById(unconfirmedUserId);
 
-            if (unconfirmedUser == null)
+            if (DateTimeOffset.Now.UtcDateTime > unconfirmedUser.ExpiredDate)
             {
-                throw new CustomException("unconfirmedUser not found");
+                throw new CustomException("code has expired");
             }
 
             var code = CodeGenerator.GetCode(6);
@@ -126,18 +119,13 @@ namespace Desgram.Api.Services
             await _emailSender.SendEmailAsync(new SingUpCodeMessage(unconfirmedUser.Email, code));
 
             unconfirmedUser.CodeHash = HashHelper.GetHash(code);
-            unconfirmedUser.CreatedDate = DateTimeOffset.Now.UtcDateTime;
 
             await _context.SaveChangesAsync();
         }
 
         public async Task UpdateProfileAsync(ProfileModel model, Guid userId)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
-            if (user == null)
-            {
-                throw new CustomException("user not found");
-            }
+            var user = await GetUserById(userId);
 
             user.BirthDate = model.BirthDate;
             user.Biography = model.Biography;
@@ -148,11 +136,7 @@ namespace Desgram.Api.Services
 
         public async Task ChangePasswordAsync(ChangePasswordModel model, Guid userId)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
-            if (user == null)
-            {
-                throw new CustomException("user not found");
-            }
+            var user = await GetUserById(userId);
 
             if (!HashHelper.Verify(model.OldPassword, user.PasswordHash))
             {
@@ -165,31 +149,92 @@ namespace Desgram.Api.Services
 
         }
 
-        public async Task ChangeEmailAsync(ChangeEmailModel model, Guid userId)
+        public async Task ChangeUserNameAsync(ChangeUserNameModel model, Guid userId)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
-            if (user == null)
-            {
-                throw new CustomException("user not found");
-            }
+            var user = await GetUserById(userId);
 
-            throw new NotImplementedException();
-        }
-
-        public async Task ChangeUserName(string newUserName, Guid userId)
-        {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
-            if (user == null)
-            {
-                throw new CustomException("user not found");
-            }
-
-            if (await _context.Users.AnyAsync(u=>u.Name == newUserName))
+            if (await _context.Users.AnyAsync(u=>u.Name == model.NewName))
             {
                 throw new CustomException("name is busy");
             }
 
-            user.Name = newUserName;
+            user.Name = model.NewName;
+
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<Guid> ChangeEmailAsync(ChangeEmailModel model, Guid userId)
+        {
+            var user = await GetUserById(userId);
+
+            if (await _context.Users.AnyAsync(u => u.Email == model.NewEmail))
+            {
+                throw new CustomException("email is busy");
+            }
+
+            var code = CodeGenerator.GetCode(6);
+
+            var unconfirmedEmail = new UnconfirmedEmail()
+            {
+                Id = Guid.NewGuid(),
+                CodeHash = HashHelper.GetHash(code),
+                Email = model.NewEmail,
+                DeletedDate = null,
+                ExpiredDate = DateTimeOffset.Now.UtcDateTime.AddMinutes(5),
+                User = user
+            };
+
+            await _context.UnconfirmedEmails.AddAsync(unconfirmedEmail);
+            await _context.SaveChangesAsync();
+
+            await SendChangeEmailCodeAsync(unconfirmedEmail.Id, userId);
+
+            return unconfirmedEmail.Id;
+        }
+
+        public async Task ConfirmEmailAsync(string code, Guid unconfirmedEmailId, Guid userId)
+        {
+            var user = await GetUserById(userId);
+
+            var unconfirmedEmail = await GetUnconfirmedEmailById(unconfirmedEmailId, userId);
+
+            if (DateTimeOffset.Now.UtcDateTime > unconfirmedEmail.ExpiredDate)
+            {
+                throw new CustomException("code has expired");
+            }
+
+            if (!HashHelper.Verify(code, unconfirmedEmail.CodeHash))
+            {
+                throw new CustomException("invalid code");
+            }
+
+            unconfirmedEmail.DeletedDate = DateTimeOffset.Now.UtcDateTime;
+
+            if (await _context.Users.AnyAsync(u => u.Email == unconfirmedEmail.Email))
+            {
+                throw new CustomException($"email {user.Email} busy");
+            }
+
+            user.Email = unconfirmedEmail.Email;
+
+            await _context.SaveChangesAsync();
+
+        }
+
+        public async Task SendChangeEmailCodeAsync(Guid unconfirmedEmailId, Guid userId)
+        {
+            var unconfirmedEmail = await GetUnconfirmedEmailById(unconfirmedEmailId, userId);
+
+            if (unconfirmedEmail.ExpiredDate < DateTimeOffset.Now.UtcDateTime)
+            {
+                throw new CustomException("code has expired");
+            }
+
+            var code = CodeGenerator.GetCode(6);
+
+            await _emailSender.SendEmailAsync(new ChangeEmailCodeMessage(unconfirmedEmail.Email, code));
+
+            unconfirmedEmail.CodeHash = HashHelper.GetHash(code);
 
             await _context.SaveChangesAsync();
         }
@@ -268,6 +313,42 @@ namespace Desgram.Api.Services
             }
 
             return user;
+        }
+
+        private async Task<User> GetUserById(Guid userId)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+            {
+                throw new CustomException("user not found");
+            }
+
+            return user;
+        }
+
+        private async Task<UnconfirmedEmail> GetUnconfirmedEmailById(Guid unconfirmedEmailId, Guid userId)
+        {
+            var unconfirmedEmail = await _context.UnconfirmedEmails
+                .FirstOrDefaultAsync(e => e.Id == unconfirmedEmailId
+                                          && e.DeletedDate == null && e.UserId == userId);
+
+            if (unconfirmedEmail == null)
+            {
+                throw new CustomException("unconfirmedEmail not found");
+            }
+            return unconfirmedEmail;
+        }
+
+        private async Task<UnconfirmedUser> GetUnconfirmedUserById(Guid unconfirmedUserId)
+        {
+            var unconfirmedUser = await _context.UnconfirmedUsers
+                .FirstOrDefaultAsync(u => u.Id == unconfirmedUserId && u.DeletedDate == null);
+
+            if (unconfirmedUser == null)
+            {
+                throw new CustomException("unconfirmedUser not found");
+            }
+            return unconfirmedUser;
         }
 
     }

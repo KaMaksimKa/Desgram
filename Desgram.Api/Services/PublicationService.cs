@@ -60,13 +60,8 @@ namespace Desgram.Api.Services
 
         public async Task DeletePublicationAsync(Guid publicationId, Guid userId)
         {
-            if (await _context.Publications
-                    .FirstOrDefaultAsync(c => c.Id == publicationId && c.DeletedDate == null) is not { } publication)
-            {
-                throw new CustomException("publication not found");
-            }
-            
-            
+            var publication = await GetPublicationById(publicationId);
+
             if (publication.UserId != userId)
             {
                 throw new CustomException("you don't have enough rights");
@@ -119,8 +114,7 @@ namespace Desgram.Api.Services
         public async Task AddCommentAsync(CreateCommentModel model, Guid userId)
         {
             var user = await GetUserByIdAsync(userId);
-
-            var publication = await GetPublicationByIdAsync(model.PublicationId);
+            var publication = await GetPublicationById(model.PublicationId);
 
             var comment = new Comment()
             {
@@ -140,19 +134,10 @@ namespace Desgram.Api.Services
 
         public async Task DeleteCommentAsync(Guid commentId, Guid userId)
         {
-            if ( await _context.Comments
-                    .Include(c => c.Publication)
-                    .FirstOrDefaultAsync(c => c.Id == commentId && c.DeletedDate == null) is not { } comment)
-            {
-                throw new CustomException("comment not found");
-            }
+            var comment = await GetCommentById(commentId);
+            var publication = await GetPublicationById(comment.PublicationId);
 
-            if (comment.Publication == null)
-            {
-                throw new CustomException("forgot include Publication");
-            }
-
-            if (comment.UserId != userId && comment.Publication.UserId != userId)
+            if (comment.UserId != userId && publication.UserId != userId)
             {
                 throw new CustomException("you don't have enough rights");
             }
@@ -164,10 +149,9 @@ namespace Desgram.Api.Services
 
         public async Task AddLikePublicationAsync(Guid publicationId, Guid userId)
         {
-            var publication = await GetPublicationByIdAsync(publicationId);
+            var publication = await GetPublicationById(publicationId);
 
-            if (await _context.LikesPublications
-                    .FirstOrDefaultAsync(l => l.PublicationId == publicationId && l.UserId == userId && l.DeletedDate == null) != null)
+            if (await UserLikePublicationAsync(publicationId,userId))
             {
                 throw new CustomException("you've already like this post");
             }
@@ -190,16 +174,12 @@ namespace Desgram.Api.Services
 
         public async Task DeleteLikePublicationAsync(Guid publicationId, Guid userId)
         {
-            if (await _context.LikesPublications
-                    .Include(c => c.Publication)
-                    .FirstOrDefaultAsync(l => l.UserId == userId && l.PublicationId == publicationId && l.DeletedDate ==null) is not { } like)
+            var like = await _context.LikesPublications
+                .FirstOrDefaultAsync(l => l.UserId == userId
+                                          && l.PublicationId == publicationId && l.DeletedDate == null);
+            if (like == null)
             {
                 throw new CustomException("you've not like this post yet");
-            }
-
-            if (like.Publication == null)
-            {
-                throw new CustomException("forgot include Publication");
             }
 
             if (like.UserId != userId)
@@ -214,14 +194,9 @@ namespace Desgram.Api.Services
 
         public async Task AddLikeCommentAsync(Guid commentId, Guid userId)
         {
-            var comment = await _context.Comments.FirstOrDefaultAsync(c=>c.Id == commentId && c.DeletedDate == null);
-            if (comment == null)
-            {
-                throw new CustomException("comment not found");
-            }
+            var comment = await GetCommentById(commentId);
 
-            if (await _context.LikesComments
-                    .FirstOrDefaultAsync(l => l.CommentId == commentId && l.UserId == userId && l.DeletedDate == null ) != null)
+            if (await UserLikeCommentAsync(commentId,userId))
             {
                 throw new CustomException("you've already like this comment");
             }
@@ -244,24 +219,19 @@ namespace Desgram.Api.Services
 
         public async Task DeleteLikeCommentAsync(Guid commentId, Guid userId)
         {
-            var comment = await _context.Comments.FirstOrDefaultAsync(c => c.Id == commentId && c.DeletedDate == null);
-            if (comment == null)
-            {
-                throw new CustomException("comment not found");
-            }
-
-            if (await _context.LikesComments
-                    .FirstOrDefaultAsync(l => l.CommentId == commentId && l.UserId == userId && l.DeletedDate == null) is not {} like)
+            var like = await _context.LikesComments
+                .FirstOrDefaultAsync(l => l.CommentId == commentId 
+                                          && l.UserId == userId && l.DeletedDate == null);
+            
+            if (like == null)
             {
                 throw new CustomException("you've not like this comment yet");
             }
 
-            
             like.DeletedDate = DateTimeOffset.Now.UtcDateTime;
 
             await _context.SaveChangesAsync();
         }
-
 
         public async Task<List<CommentModel>> GetCommentsAsync(Guid publicationId)
         {
@@ -282,23 +252,12 @@ namespace Desgram.Api.Services
             return publications;
         }
 
-        private void SetUrlForAttachPublication(List<PublicationModel> publications)
-        {
-            foreach (var publication in publications)
-            {
-                foreach (var contentModel in publication.AttachesPublication)
-                {
-                    contentModel.Url = _urlService.GetUrlDisplayAttachById(contentModel.Id);
-                }
-            }
-        }
-
         public async Task<List<PublicationModel>> GetSubscriptionsFeedAsync(Guid userId, int skip, int take)
         {
 
             var subscriptionIds = _context.UserSubscriptions
                 .Where(s => s.SubscriberId == userId && s.DeletedDate == null)
-                .Select(s=>s.SubscriptionId);
+                .Select(s => s.SubscriptionId);
 
             var publications = await _context.Publications
                 .Where(p => subscriptionIds.Contains(p.UserId) && p.DeletedDate == null)
@@ -311,7 +270,23 @@ namespace Desgram.Api.Services
             return publications;
         }
 
-        private async Task<Publication> GetPublicationByIdAsync(Guid id)
+        public async Task UpdatePublicationAsync(UpdatePublicationModel model, Guid userId)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void SetUrlForAttachPublication(List<PublicationModel> publications)
+        {
+            foreach (var publication in publications)
+            {
+                foreach (var contentModel in publication.AttachesPublication)
+                {
+                    contentModel.Url = _urlService.GetUrlDisplayAttachById(contentModel.Id);
+                }
+            }
+        }
+
+        private async Task<Publication> GetPublicationById(Guid id)
         {
             var publication =await _context.Publications.FirstOrDefaultAsync(p => p.Id == id && p.DeletedDate == null);
             if (publication == null)
@@ -333,6 +308,31 @@ namespace Desgram.Api.Services
             }
 
             return user;
+        }
+
+        private async Task<Comment> GetCommentById(Guid commentId)
+        {
+            var comment = await _context.Comments.FirstOrDefaultAsync(c => c.Id == commentId && c.DeletedDate == null);
+            if (comment == null)
+            {
+                throw new CustomException("comment not found");
+            }
+
+            return comment;
+        }
+
+        private async Task<bool> UserLikePublicationAsync(Guid publicationId, Guid userId)
+        {
+            return await _context.LikesPublications
+                .AnyAsync(l => l.PublicationId == publicationId 
+                          && l.UserId == userId && l.DeletedDate == null);
+        }
+
+        private async Task<bool> UserLikeCommentAsync(Guid commentId, Guid userId)
+        {
+            return await _context.LikesComments
+                .AnyAsync(l => l.CommentId == commentId
+                               && l.UserId == userId && l.DeletedDate == null);
         }
     }
 }
