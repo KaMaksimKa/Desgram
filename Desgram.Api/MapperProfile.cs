@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Desgram.Api.Models;
 using Desgram.Api.Models.Attach;
+using Desgram.Api.Models.Blocked;
 using Desgram.Api.Models.Publication;
 using Desgram.Api.Models.Subscription;
 using Desgram.Api.Models.User;
@@ -21,7 +22,7 @@ namespace Desgram.Api
 
             CreateMap<User, UserModel>()
                 .ForMember(s=>s.Avatar,m=>
-                    m.MapFrom(d=>d.Avatar))
+                    m.MapFrom(d=>d.Avatars.FirstOrDefault(a=>a.DeletedDate==null)))
                 .ForMember(d => d.AmountSubscribers,
                     m => m.MapFrom(
                         s => s.Subscribers.Count(sub => sub.DeletedDate == null)))
@@ -29,7 +30,10 @@ namespace Desgram.Api
                     m => m.MapFrom(
                         s => s.Subscriptions.Count(sub => sub.DeletedDate == null))); ;
 
-            CreateMap<AttachPublication, AttachWithUrlModel>();
+            CreateMap<AttachPublication, AttachWithUrlModel>().AfterMap((p, at) =>
+            {
+                at.Url = "jfkdsjkf";
+            }); 
             CreateMap<Avatar, AttachWithUrlModel>();
 
             CreateMap<Publication, PublicationModel>()
@@ -47,16 +51,16 @@ namespace Desgram.Api
                         s => s.LikesPublication.Count(l => l.DeletedDate == null)));
 
 
-           
-
             CreateMap<Comment, CommentModel>()
                 .ForMember(d => d.AmountLikes,
                     m => m.MapFrom(
                         s => s.LikesComment.Count( l=> l.DeletedDate == null)));
 
             CreateMap<UserSubscription, SubscriptionModel>();
-            
+
             CreateMap<UserSubscription, SubscriberModel>();
+
+            CreateMap<BlockingUser, BlockedUserModel>();
 
         }
 

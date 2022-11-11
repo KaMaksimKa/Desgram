@@ -8,14 +8,14 @@
         public string PasswordHash { get; set; } = null!;
         public string? FullName { get; set; }
         public string? Biography { get; set; }
-        public DateTimeOffset? BirthDate { get; init; }
-        public DateTimeOffset CreatedDate { get; init; }
+        public DateTimeOffset? BirthDate { get; set; }
+        public DateTimeOffset CreatedDate { get; set; }
 
-        public virtual Avatar? Avatar { get; set; }
-        public virtual List<UserSubscription> Subscriptions { get; set; } = null!;
+        public virtual ICollection<Avatar> Avatars { get; set; } = null!;
+        public virtual ICollection<UserSubscription> Subscriptions { get; set; } = null!;
         public virtual ICollection<UserSubscription> Subscribers { get; set; } = null!;
-        public virtual List<UserSession> Sessions { get; set; } = null!;
-
+        public virtual ICollection<UserSession> Sessions { get; set; } = null!;
+        public virtual ICollection<BlockingUser> BlockedUsers { get; set; } = null!;
 
     }
 }

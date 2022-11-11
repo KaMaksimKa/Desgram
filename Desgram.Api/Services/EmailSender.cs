@@ -1,6 +1,6 @@
 ﻿using Desgram.Api.Config;
-using Desgram.Api.Services.Dto;
 using Desgram.Api.Services.Interfaces;
+using Desgram.Api.Services.ServiceModel.Interfaces;
 using MailKit.Net.Smtp;
 using Microsoft.Extensions.Options;
 using MimeKit;
@@ -16,16 +16,16 @@ namespace Desgram.Api.Services
             _config = config.Value;
         }
 
-        public async Task SendEmailAsync(EmailMessageDto dto)
+        public async Task SendEmailAsync(IEmailMessage message)
         {
             var emailMessage = new MimeMessage();
 
             emailMessage.From.Add(new MailboxAddress("Desgram", _config.DesgramEmailAddress));
-            emailMessage.To.Add(new MailboxAddress("", dto.Email));
-            emailMessage.Subject = dto.Subject;
+            emailMessage.To.Add(new MailboxAddress("", message.Email));
+            emailMessage.Subject = message.Subject;
             emailMessage.Body = new TextPart(MimeKit.Text.TextFormat.Plain)
             {
-                Text = dto.Body
+                Text = message.Body
             };
 
             using var client = new SmtpClient();

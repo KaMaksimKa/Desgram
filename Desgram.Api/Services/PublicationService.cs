@@ -58,7 +58,7 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task DeletePublication(Guid publicationId, Guid userId)
+        public async Task DeletePublicationAsync(Guid publicationId, Guid userId)
         {
             if (await _context.Publications
                     .FirstOrDefaultAsync(c => c.Id == publicationId && c.DeletedDate == null) is not { } publication)
@@ -106,23 +106,17 @@ namespace Desgram.Api.Services
 
         public async Task<List<PublicationModel>> GetAllPublicationsAsync()
         {
-            var publications =await _context.Publications
+            var publications =(await _context.Publications
                 .Where(p => p.DeletedDate == null)
                 .ProjectTo<PublicationModel>(_mapper.ConfigurationProvider)
-                .ToListAsync();
+                .ToListAsync());
 
-            foreach (var publication in publications)
-            {
-                foreach (var contentModel in publication.AttachesPublication)
-                {
-                    contentModel.Url = _urlService.GetUrlDisplayAttachById(contentModel.Id);
-                }
-            }
+            SetUrlForAttachPublication(publications);
 
             return publications;
         }
 
-        public async Task AddComment(CreateCommentModel model, Guid userId)
+        public async Task AddCommentAsync(CreateCommentModel model, Guid userId)
         {
             var user = await GetUserByIdAsync(userId);
 
@@ -144,7 +138,7 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task DeleteComment(Guid commentId, Guid userId)
+        public async Task DeleteCommentAsync(Guid commentId, Guid userId)
         {
             if ( await _context.Comments
                     .Include(c => c.Publication)
@@ -168,7 +162,7 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task AddLikePublication(Guid publicationId, Guid userId)
+        public async Task AddLikePublicationAsync(Guid publicationId, Guid userId)
         {
             var publication = await GetPublicationByIdAsync(publicationId);
 
@@ -194,7 +188,7 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task DeleteLikePublication(Guid publicationId, Guid userId)
+        public async Task DeleteLikePublicationAsync(Guid publicationId, Guid userId)
         {
             if (await _context.LikesPublications
                     .Include(c => c.Publication)
@@ -218,7 +212,7 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task AddLikeComment(Guid commentId, Guid userId)
+        public async Task AddLikeCommentAsync(Guid commentId, Guid userId)
         {
             var comment = await _context.Comments.FirstOrDefaultAsync(c=>c.Id == commentId && c.DeletedDate == null);
             if (comment == null)
@@ -248,7 +242,7 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task DeleteLikeComment(Guid commentId, Guid userId)
+        public async Task DeleteLikeCommentAsync(Guid commentId, Guid userId)
         {
             var comment = await _context.Comments.FirstOrDefaultAsync(c => c.Id == commentId && c.DeletedDate == null);
             if (comment == null)
@@ -269,7 +263,7 @@ namespace Desgram.Api.Services
         }
 
 
-        public async Task<List<CommentModel>> GetComments(Guid publicationId)
+        public async Task<List<CommentModel>> GetCommentsAsync(Guid publicationId)
         {
             var comments = await _context.Comments
                 .Where(c => c.PublicationId == publicationId && c.DeletedDate == null)
@@ -280,11 +274,41 @@ namespace Desgram.Api.Services
 
         public async Task<List<PublicationModel>> GetPublicationByHashTagAsync(string hashTag)
         {
-            var publication = await _context.Publications
-                .Where(p =>p.DeletedDate == null && p.HashTags.Any(p => p.Title == hashTag))
+            var publications = await _context.Publications
+                .Where(p =>p.DeletedDate == null && p.HashTags.Any(tag => tag.Title == hashTag))
                 .ProjectTo<PublicationModel>(_mapper.ConfigurationProvider)
                 .ToListAsync();
-            return publication.Select(p => _mapper.Map<PublicationModel>(p)).ToList();
+            SetUrlForAttachPublication(publications);
+            return publications;
+        }
+
+        private void SetUrlForAttachPublication(List<PublicationModel> publications)
+        {
+            foreach (var publication in publications)
+            {
+                foreach (var contentModel in publication.AttachesPublication)
+                {
+                    contentModel.Url = _urlService.GetUrlDisplayAttachById(contentModel.Id);
+                }
+            }
+        }
+
+        public async Task<List<PublicationModel>> GetSubscriptionsFeedAsync(Guid userId, int skip, int take)
+        {
+
+            var subscriptionIds = _context.UserSubscriptions
+                .Where(s => s.SubscriberId == userId && s.DeletedDate == null)
+                .Select(s=>s.SubscriptionId);
+
+            var publications = await _context.Publications
+                .Where(p => subscriptionIds.Contains(p.UserId) && p.DeletedDate == null)
+                .ProjectTo<PublicationModel>(_mapper.ConfigurationProvider)
+                .Skip(skip).Take(take)
+                .ToListAsync();
+
+            SetUrlForAttachPublication(publications);
+
+            return publications;
         }
 
         private async Task<Publication> GetPublicationByIdAsync(Guid id)

@@ -26,7 +26,7 @@ namespace Desgram.Api.Services
             _authConfig = options.Value;
         }
 
-        public async Task<TokenModel> GetTokenByCredentials(string login, string password)
+        public async Task<TokenModel> GetTokenByCredentialsAsync(string login, string password)
         {
 
             var user = IsEmail(login) ? await GetByUserEmailAsync(login) : await GetUserByNameAsync(login);
@@ -59,7 +59,7 @@ namespace Desgram.Api.Services
             return str.Contains("@");
         }
 
-        public async Task<TokenModel> GetTokenByRefreshToken(string refreshToken)
+        public async Task<TokenModel> GetTokenByRefreshTokenAsync(string refreshToken)
         {
             var validationParam = new TokenValidationParameters
             {
@@ -101,7 +101,7 @@ namespace Desgram.Api.Services
             };
         }
 
-        public async Task LogoutBySessionId(Guid sessionId)
+        public async Task LogoutBySessionIdAsync(Guid sessionId)
         {
             var session = await _context.UserSessions.FirstOrDefaultAsync(s => s.Id == sessionId && s.IsActive);
             if (session == null)
@@ -113,7 +113,7 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task LogoutAllDeviceByUserId(Guid userId)
+        public async Task LogoutAllDeviceByUserIdAsync(Guid userId)
         {
             var user =await _context.Users
                 .FirstOrDefaultAsync(u => u.Id == userId);

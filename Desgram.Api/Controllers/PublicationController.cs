@@ -18,6 +18,29 @@ namespace Desgram.Api.Controllers
             _publicationService = publicationService;
         }
 
+
+        [AllowAnonymous]
+        [HttpGet]
+        public async Task<List<PublicationModel>> GetPublications()
+        {
+            return await _publicationService.GetAllPublicationsAsync();
+        }
+
+        [Route("{hashTag}")]
+        [HttpGet]
+        public async Task<List<PublicationModel>> GetPublicationsByHashTag(string hashTag)
+        {
+            return await _publicationService.GetPublicationByHashTagAsync(hashTag);
+        }
+
+
+        [HttpGet]
+        public async Task<List<PublicationModel>> GetSubscriptionsFeed(int skip,int take)
+        {
+            var userId = User.GetUserId();
+            return await _publicationService.GetSubscriptionsFeedAsync(userId,skip,take);
+        }
+
         [HttpPost]
         public async Task CreatePublication(CreatePublicationModel model)
         {
@@ -29,49 +52,36 @@ namespace Desgram.Api.Controllers
         public async Task DeletePublication(Guid publicationId)
         {
             var userId = User.GetUserId();
-            await _publicationService.DeletePublication(publicationId,userId);
-        }
-
-        [AllowAnonymous]
-        [HttpGet]
-        public async Task<List<PublicationModel>> GetPublications()
-        {
-            return await _publicationService.GetAllPublicationsAsync();
-        }
-
-
-        [HttpGet]
-        public async Task<List<PublicationModel>> GetPublicationsByHashTag(string hashTag)
-        {
-            return await _publicationService.GetPublicationByHashTagAsync(hashTag);
+            await _publicationService.DeletePublicationAsync(publicationId,userId);
         }
 
         [HttpPost]
         public async Task AddComment(CreateCommentModel model)
         {
             var userId = User.GetUserId();
-            await _publicationService.AddComment(model, userId);
+            await _publicationService.AddCommentAsync(model, userId);
         }
 
         [HttpPost]
         public async Task DeleteComment(Guid commentId)
         {
             var userId = User.GetUserId();
-            await _publicationService.DeleteComment(commentId, userId);
+            await _publicationService.DeleteCommentAsync(commentId, userId);
         }
 
+        [Route("{publicationId}")]
         [AllowAnonymous]
         [HttpGet]
-        public async Task<List<CommentModel>> GetComments(Guid publicationId)
+        public async Task<List<CommentModel>> GetCommentsByPublication(Guid publicationId)
         {
-            return await _publicationService.GetComments(publicationId);
+            return await _publicationService.GetCommentsAsync(publicationId);
         }
 
         [HttpPost]
         public async Task AddLikePublication(Guid publicationId)
         {
             var userId = User.GetUserId();
-            await _publicationService.AddLikePublication(publicationId,userId);
+            await _publicationService.AddLikePublicationAsync(publicationId,userId);
         }
        
 
@@ -79,7 +89,7 @@ namespace Desgram.Api.Controllers
         public async Task DeleteLikePublication(Guid publicationId)
         {
             var userId = User.GetUserId();
-            await _publicationService.DeleteLikePublication(publicationId, userId);
+            await _publicationService.DeleteLikePublicationAsync(publicationId, userId);
         }
 
 
@@ -87,7 +97,7 @@ namespace Desgram.Api.Controllers
         public async Task AddLikeComment(Guid commentId)
         {
             var userId = User.GetUserId();
-            await _publicationService.AddLikeComment(commentId, userId);
+            await _publicationService.AddLikeCommentAsync(commentId, userId);
         }
   
 
@@ -95,7 +105,7 @@ namespace Desgram.Api.Controllers
         public async Task DeleteLikeComment(Guid commentId)
         {
             var userId = User.GetUserId();
-            await _publicationService.DeleteLikeComment(commentId, userId);
+            await _publicationService.DeleteLikeCommentAsync(commentId, userId);
         }
 
     }

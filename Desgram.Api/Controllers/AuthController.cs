@@ -22,14 +22,14 @@ namespace Desgram.Api.Controllers
         [HttpPost]
         public async Task<TokenModel> Token(TokenRequestModel model)
         {
-            return await _authService.GetTokenByCredentials(model.UserName, model.Password);
+            return await _authService.GetTokenByCredentialsAsync(model.UserName, model.Password);
         }
 
         [AllowAnonymous]
         [HttpPost]
         public async Task<TokenModel> RefreshToken(RefreshTokenRequestModel model)
         {
-            return await _authService.GetTokenByRefreshToken(model.RefreshToken);
+            return await _authService.GetTokenByRefreshTokenAsync(model.RefreshToken);
         }
 
 
@@ -37,14 +37,14 @@ namespace Desgram.Api.Controllers
         public async Task Logout()
         {
             var sessionId = User.GetSessionId();
-            await _authService.LogoutBySessionId(sessionId);
+            await _authService.LogoutBySessionIdAsync(sessionId);
         }
 
         [HttpPost]
         public async Task LogoutAllDevice()
         {
             var userId = User.GetUserId();
-            await _authService.LogoutAllDeviceByUserId(userId);
+            await _authService.LogoutAllDeviceByUserIdAsync(userId);
         }
     }
 }

@@ -8,7 +8,7 @@ namespace Desgram.Api.Services.Interfaces
 
         public string MoveFromTempToAttach(MetadataModel model);
 
-        public Task<AttachWithPathModel> GetAttachById(Guid id);
+        public Task<AttachWithPathModel> GetAttachByIdAsync(Guid id);
 
     }
 }

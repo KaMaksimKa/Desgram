@@ -3,6 +3,7 @@ using System;
 using Desgram.DAL;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,10 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Desgram.Api.Migrations
 {
     [DbContext(typeof(ApplicationContext))]
-    partial class ApplicationContextModelSnapshot : ModelSnapshot
+    [Migration("20221111140107_AddBlockedUser")]
+    partial class AddBlockedUser
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -59,7 +61,7 @@ namespace Desgram.Api.Migrations
                     b.ToTable("Attaches");
                 });
 
-            modelBuilder.Entity("Desgram.DAL.Entities.BlockingUser", b =>
+            modelBuilder.Entity("Desgram.DAL.Entities.BlockedUser", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -83,7 +85,7 @@ namespace Desgram.Api.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("BlockingUsers");
+                    b.ToTable("BlockedUsers");
                 });
 
             modelBuilder.Entity("Desgram.DAL.Entities.Comment", b =>
@@ -181,39 +183,6 @@ namespace Desgram.Api.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Publications");
-                });
-
-            modelBuilder.Entity("Desgram.DAL.Entities.UnconfirmedUser", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("CodeHash")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTimeOffset>("CreatedDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTimeOffset?>("DeletedDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("PasswordHash")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("UnconfirmedUsers");
                 });
 
             modelBuilder.Entity("Desgram.DAL.Entities.User", b =>
@@ -343,7 +312,8 @@ namespace Desgram.Api.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId")
+                        .IsUnique();
 
                     b.ToTable("Avatars", (string)null);
                 });
@@ -383,7 +353,7 @@ namespace Desgram.Api.Migrations
                     b.Navigation("Owner");
                 });
 
-            modelBuilder.Entity("Desgram.DAL.Entities.BlockingUser", b =>
+            modelBuilder.Entity("Desgram.DAL.Entities.BlockedUser", b =>
                 {
                     b.HasOne("Desgram.DAL.Entities.User", "Blocked")
                         .WithMany()
@@ -514,8 +484,8 @@ namespace Desgram.Api.Migrations
                         .IsRequired();
 
                     b.HasOne("Desgram.DAL.Entities.User", "User")
-                        .WithMany("Avatars")
-                        .HasForeignKey("UserId")
+                        .WithOne("Avatar")
+                        .HasForeignKey("Desgram.DAL.Entities.Avatar", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -572,7 +542,7 @@ namespace Desgram.Api.Migrations
 
             modelBuilder.Entity("Desgram.DAL.Entities.User", b =>
                 {
-                    b.Navigation("Avatars");
+                    b.Navigation("Avatar");
 
                     b.Navigation("BlockedUsers");
 

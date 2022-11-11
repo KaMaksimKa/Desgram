@@ -18,6 +18,8 @@ namespace Desgram.DAL
         public DbSet<UserSession> UserSessions { get; init; } = null!;
         public DbSet<HashTag> HashTags { get; init; } = null!;
         public DbSet<UserSubscription> UserSubscriptions { get; init; } = null!;
+        public DbSet<BlockingUser> BlockingUsers { get; init; } = null!;
+        public DbSet<UnconfirmedUser> UnconfirmedUsers { get; init; } = null!;
 
         public ApplicationContext(DbContextOptions<ApplicationContext> options) :base(options) 
         {
@@ -41,6 +43,9 @@ namespace Desgram.DAL
                 .WithOne(s => s.Subscription);
             modelBuilder.Entity<User>().HasMany(u => u.Subscriptions)
                 .WithOne(s => s.Subscriber);
+
+            modelBuilder.Entity<User>().HasMany(u => u.BlockedUsers)
+                .WithOne(b => b.User);
         }
     }
 }

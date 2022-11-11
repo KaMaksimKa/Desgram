@@ -31,27 +31,30 @@ namespace Desgram.Api.Controllers
             return metadataModels;
         }
 
+        
         [HttpPost]
         public async Task<MetadataModel> UploadFile(IFormFile file)
         {
             return await _attachService.SaveToTempAsync(file);
         }
 
+        [Route("{id}")]
         [AllowAnonymous]
         [HttpGet]
         public async Task<FileResult> DisplayAttachById(Guid id)
         {
-            var attachModel = await _attachService.GetAttachById(id);
+            var attachModel = await _attachService.GetAttachByIdAsync(id);
             var fileStream = new FileStream(attachModel.FilePath, FileMode.Open);
             return File(fileStream, attachModel.MimeType);
             
            
         }
 
+        [Route("{id}")]
         [HttpGet]
         public async Task<FileResult> DownloadAttachById(Guid id)
         {
-            var attachModel = await _attachService.GetAttachById(id);
+            var attachModel = await _attachService.GetAttachByIdAsync(id);
 
             var fileStream = new FileStream(attachModel.FilePath, FileMode.Open);
             return File(fileStream, attachModel.MimeType, fileDownloadName: attachModel.Name);

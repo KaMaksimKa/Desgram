@@ -78,7 +78,7 @@ namespace Desgram.Api.Services
         {
             return Path.Combine(Directory.GetCurrentDirectory(), _defaultPathImage, id.ToString());
         }
-        public async Task<AttachWithPathModel> GetAttachById(Guid id)
+        public async Task<AttachWithPathModel> GetAttachByIdAsync(Guid id)
         {
             var attach =await _context.Attaches.FirstOrDefaultAsync(x => x.Id == id);
             if (attach == null)

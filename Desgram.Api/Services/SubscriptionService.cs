@@ -20,7 +20,7 @@ namespace Desgram.Api.Services
             _mapper = mapper;
         }
 
-        public async Task Subscribe(Guid subscriberId, string subscriptionUserName)
+        public async Task SubscribeAsync(Guid subscriberId, string subscriptionUserName)
         {
             var subscriber = await GetUserByIdAsync(subscriberId);
             var subscription = await GetUserByNameAsync(subscriptionUserName);
@@ -45,7 +45,7 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task Unsubscribe(Guid subscriberId, string subscriptionUserName)
+        public async Task UnsubscribeAsync(Guid subscriberId, string subscriptionUserName)
         {
             var subscriber = await GetUserByIdAsync(subscriberId);
             var subscription = await GetUserByNameAsync(subscriptionUserName);
@@ -63,7 +63,7 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task<List<SubscriptionModel>> GetSubscriptions(Guid userId)
+        public async Task<List<SubscriptionModel>> GetSubscriptionsAsync(Guid userId)
         {
             var user = await GetUserByIdAsync(userId);
 
@@ -75,7 +75,7 @@ namespace Desgram.Api.Services
             return subscriptions;
         }
 
-        public async Task<List<SubscriberModel>> GetSubscribers(Guid userId)
+        public async Task<List<SubscriberModel>> GetSubscribersAsync(Guid userId)
         {
             var user = await GetUserByIdAsync(userId);
             

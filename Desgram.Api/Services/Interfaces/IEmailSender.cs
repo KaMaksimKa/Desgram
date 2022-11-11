@@ -1,9 +1,9 @@
-﻿using Desgram.Api.Services.Dto;
+﻿using Desgram.Api.Services.ServiceModel.Interfaces;
 
 namespace Desgram.Api.Services.Interfaces
 {
     public interface IEmailSender
     {
-        public Task SendEmailAsync(EmailMessageDto dto);
+        public Task SendEmailAsync(IEmailMessage message);
     }
 }

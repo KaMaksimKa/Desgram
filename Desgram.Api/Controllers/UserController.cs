@@ -13,19 +13,31 @@ namespace Desgram.Api.Controllers
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;
-        private readonly IUrlService _urlService;
 
-        public UserController(IUserService userService,IUrlService urlService)
+        public UserController(IUserService userService)
         {
             _userService = userService;
-            _urlService = urlService;
         }
 
+        [AllowAnonymous]
         [HttpPost]
-        public async Task<IActionResult> CreateUser(CreateUserModel createUserDto)
+        public async Task<Guid> CreateUser(CreateUserModel createUserDto)
         {
-            await _userService.CreateUserAsync(createUserDto);
-            return Ok();
+            return await _userService.CreateUserAsync(createUserDto);
+        }
+
+        [AllowAnonymous]
+        [HttpPost]
+        public async Task ConfirmEmail(string code, Guid unconfirmedUserId)
+        {
+            await _userService.ConfirmEmailByCodeAsync(code, unconfirmedUserId);
+        }
+
+        [AllowAnonymous]
+        [HttpPost]
+        public async Task SendEmailConfirmationCode(Guid unconfirmedUserId)
+        {
+            await _userService.SendEmailConfirmationCodeAsync(unconfirmedUserId);
         }
 
         [HttpGet]
@@ -48,26 +60,6 @@ namespace Desgram.Api.Controllers
             var userId = User.GetUserId();
 
             await _userService.AddAvatarAsync(model,userId);
-        }
-
-        /*[HttpGet]
-        public async Task<FileResult> GetAvatar()
-        {
-            var userId = User.GetUserId();
-
-            var attach =  await _userService.GetAvatarAsync(userId);
-            var fileStream = new FileStream(attach.FilePath, FileMode.Open);
-
-            return File(fileStream, attach.MimeType);
-        }*/
-        [HttpGet]
-        public async Task<IActionResult> GetAvatar()
-        {
-            var userId = User.GetUserId();
-
-            var attach = await _userService.GetAvatarAsync(userId);
-
-            return Redirect(_urlService.GetUrlDisplayAttachById(attach.Id));
         }
 
     }

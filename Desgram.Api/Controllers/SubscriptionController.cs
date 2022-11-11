@@ -23,28 +23,28 @@ namespace Desgram.Api.Controllers
         public async Task Subscribe(string subscriptionUserName)
         {
             var userId = User.GetUserId();
-            await _subscriptionService.Subscribe(userId, subscriptionUserName);
+            await _subscriptionService.SubscribeAsync(userId, subscriptionUserName);
         }
 
         [HttpPost]
         public async Task Unsubscribe(string subscriptionUserName)
         {
             var userId = User.GetUserId();
-            await _subscriptionService.Unsubscribe(userId, subscriptionUserName);
+            await _subscriptionService.UnsubscribeAsync(userId, subscriptionUserName);
         }
 
         [HttpGet]
         public Task<List<SubscriptionModel>> GetSubscriptions()
         {
             var userId = User.GetUserId();
-            return _subscriptionService.GetSubscriptions(userId);
+            return _subscriptionService.GetSubscriptionsAsync(userId);
         }
 
         [HttpGet]
         public Task<List<SubscriberModel>> GetSubscribers()
         {
             var userId = User.GetUserId();
-            return _subscriptionService.GetSubscribers(userId);
+            return _subscriptionService.GetSubscribersAsync(userId);
         }
     }
 }
