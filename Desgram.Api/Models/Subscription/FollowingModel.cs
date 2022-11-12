@@ -2,8 +2,8 @@
 
 namespace Desgram.Api.Models.Subscription
 {
-    public class SubscriptionModel
+    public class FollowingModel
     {
-        public string SubscriptionName { get; set; } = null!;
+        public string ContentMakerName { get; set; } = null!;
     }
 }

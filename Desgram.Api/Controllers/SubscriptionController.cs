@@ -1,4 +1,4 @@
-﻿using Desgram.Api.Infrastructure;
+﻿using Desgram.Api.Infrastructure.Extensions;
 using Desgram.Api.Models.Subscription;
 using Desgram.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -34,17 +34,17 @@ namespace Desgram.Api.Controllers
         }
 
         [HttpGet]
-        public Task<List<SubscriptionModel>> GetSubscriptions()
+        public Task<List<FollowingModel>> GetSubscriptions()
         {
             var userId = User.GetUserId();
-            return _subscriptionService.GetSubscriptionsAsync(userId);
+            return _subscriptionService.GetFollowingAsync(userId);
         }
 
         [HttpGet]
-        public Task<List<SubscriberModel>> GetSubscribers()
+        public Task<List<FollowerModel>> GetSubscribers()
         {
             var userId = User.GetUserId();
-            return _subscriptionService.GetSubscribersAsync(userId);
+            return _subscriptionService.GetFollowersAsync(userId);
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿using Desgram.Api.Models.Publication;
+﻿using Desgram.Api.Models.Comment;
 
 namespace Desgram.Api.Services.Interfaces
 {

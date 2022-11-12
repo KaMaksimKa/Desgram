@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Desgram.DAL.Entities
 {
-    public class UserSubscription
+    public class SubscriptionRequest
     {
         public Guid Id { get; set; }
         public Guid FollowerId { get; set; }

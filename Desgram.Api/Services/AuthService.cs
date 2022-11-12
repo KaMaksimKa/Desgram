@@ -11,10 +11,11 @@ using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
 using Desgram.Api.Infrastructure;
 using Desgram.Api.Models.Token;
+using Desgram.Api.Infrastructure.Extensions;
 
 namespace Desgram.Api.Services
 {
-    public class AuthService:IAuthService
+    public class AuthService : IAuthService
     {
         private readonly ApplicationContext _context;
 
@@ -29,14 +30,16 @@ namespace Desgram.Api.Services
         public async Task<TokenModel> GetTokenByCredentialsAsync(string login, string password)
         {
 
-            var user = IsEmail(login) ? await GetByUserEmailAsync(login) : await GetUserByNameAsync(login);
+            var user = IsEmail(login) ? 
+                await _context.Users.GetByUserEmailAsync(login) 
+                : await _context.Users.GetUserByNameAsync(login);
 
-            if (!VerifyPassword(user, password))
+            if (!HashHelper.Verify(password, user.PasswordHash))
             {
                 throw new CustomException("password is not correct");
             }
 
-            var session =(await _context.UserSessions.AddAsync(new UserSession()
+            var session = (await _context.UserSessions.AddAsync(new UserSession()
             {
                 Id = Guid.NewGuid(),
                 User = user,
@@ -47,7 +50,8 @@ namespace Desgram.Api.Services
 
             await _context.SaveChangesAsync();
 
-            return new TokenModel{
+            return new TokenModel
+            {
                 AccessToken = GetAccessToken(session),
                 RefreshToken = GetRefreshToken(session)
 
@@ -74,19 +78,14 @@ namespace Desgram.Api.Services
                 new JwtSecurityTokenHandler().ValidateToken(refreshToken, validationParam, out var securityToken);
 
             if (securityToken is not JwtSecurityToken jwToken ||
-                !jwToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256,StringComparison.InvariantCultureIgnoreCase))
+                !jwToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
             {
                 throw new CustomException("token is invalid");
             }
 
-            var guidString = principal.Claims.FirstOrDefault(c => c.Type == AppClaimTypes.RefreshTokenId)?.Value;
-            
-            if (!Guid.TryParse(guidString, out var guid))
-            {
-                throw new CustomException("token is invalid");
-            }
+            var refreshTokenId = principal.GetRefreshTokenId();
 
-            var session = await GetSessionWithUserByRefreshAsync(guid);
+            var session = await GetSessionByRefreshIdAsync(refreshTokenId);
             if (!session.IsActive)
             {
                 throw new CustomException("session is not active");
@@ -95,7 +94,8 @@ namespace Desgram.Api.Services
             session.RefreshTokenId = Guid.NewGuid();
             await _context.SaveChangesAsync();
 
-            return new TokenModel{
+            return new TokenModel
+            {
                 AccessToken = GetAccessToken(session),
                 RefreshToken = GetRefreshToken(session)
             };
@@ -115,17 +115,12 @@ namespace Desgram.Api.Services
 
         public async Task LogoutAllDeviceByUserIdAsync(Guid userId)
         {
-            var user =await _context.Users
-                .FirstOrDefaultAsync(u => u.Id == userId);
-
+            var user = await _context.Users.GetUserByIdAsync(userId);
+            
             var sessions = await _context.UserSessions
                 .Where(s => s.UserId == userId && s.IsActive)
                 .ToListAsync();
 
-            if (user == null)
-            {
-                throw new CustomException("user not found");
-            }
 
             foreach (var session in sessions)
             {
@@ -133,20 +128,6 @@ namespace Desgram.Api.Services
             }
 
             await _context.SaveChangesAsync();
-        }
-
-
-        private async Task<UserSession> GetSessionWithUserByRefreshAsync(Guid refreshTokenId)
-        {
-            var session = await _context.UserSessions.Include(s=>s.User)
-                .FirstOrDefaultAsync(s => s.RefreshTokenId == refreshTokenId);
-
-            if (session == null)
-            {
-                throw new CustomException("session not found");
-            }
-
-            return session;
         }
 
         private string GetAccessToken(UserSession session)
@@ -162,11 +143,12 @@ namespace Desgram.Api.Services
                 notBefore: DateTime.Now,
                 claims: new List<Claim>()
                 {
-                    new Claim(ClaimTypes.NameIdentifier,session.User.Id.ToString()),
-                    new Claim(AppClaimTypes.SessionId,session.Id.ToString())
+                    new Claim(ClaimTypes.NameIdentifier, session.User.Id.ToString()),
+                    new Claim(AppClaimTypes.SessionId, session.Id.ToString())
                 },
                 expires: DateTime.Now.AddMinutes(_authConfig.LifeTime),
-                signingCredentials: new SigningCredentials(_authConfig.SymmetricSecurityKey, SecurityAlgorithms.HmacSha256)
+                signingCredentials: new SigningCredentials(_authConfig.SymmetricSecurityKey,
+                    SecurityAlgorithms.HmacSha256)
             );
 
             var encodedAccess = (new JwtSecurityTokenHandler()).WriteToken(access);
@@ -181,10 +163,11 @@ namespace Desgram.Api.Services
                 notBefore: DateTime.Now,
                 claims: new List<Claim>()
                 {
-                    new Claim(AppClaimTypes.RefreshTokenId,session.RefreshTokenId.ToString())
+                    new Claim(AppClaimTypes.RefreshTokenId, session.RefreshTokenId.ToString())
                 },
                 expires: DateTime.Now.AddHours(_authConfig.LifeTime),
-                signingCredentials: new SigningCredentials(_authConfig.SymmetricSecurityKey, SecurityAlgorithms.HmacSha256)
+                signingCredentials: new SigningCredentials(_authConfig.SymmetricSecurityKey,
+                    SecurityAlgorithms.HmacSha256)
             );
 
             var encodedRefresh = (new JwtSecurityTokenHandler()).WriteToken(refresh);
@@ -193,31 +176,27 @@ namespace Desgram.Api.Services
 
         }
 
-        private bool VerifyPassword(User user, string password)
+        private async Task<UserSession> GetSessionByRefreshIdAsync(Guid refreshTokenId)
         {
-            return HashHelper.Verify(password, user.PasswordHash);
+            var session = await _context.UserSessions.FirstOrDefaultAsync(s => s.RefreshTokenId == refreshTokenId);
+
+            if (session == null)
+            {
+                throw new CustomException("session not found");
+            }
+
+            return session;
         }
 
-        private async Task<User> GetUserByNameAsync(string name)
+        /*private async Task<UserSession> GetSessionByIdAsync(Guid sessionId)
         {
-            var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Name.ToLower() == name.ToLower());
-            if (user == null)
+            var session = await _context.UserSessions.FirstOrDefaultAsync(s => s.Id == sessionId && s.IsActive);
+            if (session == null)
             {
-                throw new CustomException("user not found");
+                throw new CustomException("session not found");
             }
-            return user;
-        }
 
-        private async Task<User> GetByUserEmailAsync(string email)
-        {
-            var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
-            if (user == null)
-            {
-                throw new CustomException("user not found");
-            }
-            return user;
-        }
+            return session;
+        }*/
     }
 }

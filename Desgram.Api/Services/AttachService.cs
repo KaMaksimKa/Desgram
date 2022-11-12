@@ -1,8 +1,9 @@
-﻿using Desgram.Api.Services.Interfaces;
+﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
+using Desgram.Api.Services.Interfaces;
 using Desgram.DAL;
 using Desgram.SharedKernel.Exceptions;
 using Microsoft.EntityFrameworkCore;
-using System.IO;
 using Desgram.Api.Models.Attach;
 
 namespace Desgram.Api.Services
@@ -10,11 +11,13 @@ namespace Desgram.Api.Services
     public class AttachService:IAttachService
     {
         private readonly ApplicationContext _context;
+        private readonly IMapper _mapper;
         private readonly string _defaultPathImage = $"attaches";
 
-        public AttachService(ApplicationContext context)
+        public AttachService(ApplicationContext context,IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
         public async Task<MetadataModel> SaveToTempAsync(IFormFile file)
@@ -46,13 +49,9 @@ namespace Desgram.Api.Services
             return metadata;
         }
 
-        private string GetTempPathById(Guid id)
-        {
-           return Path.Combine(Path.GetTempPath(), "Desgram", _defaultPathImage, id.ToString());
-        }
         public string MoveFromTempToAttach(MetadataModel model)
         {
-            var pathTemp = GetTempPathById(model.Id); ;
+            var pathTemp = GetTempPathById(model.Id);
             var fileInfoTemp = new FileInfo(pathTemp);
 
             if (!fileInfoTemp.Exists)
@@ -74,26 +73,27 @@ namespace Desgram.Api.Services
             return pathAttach;
         }
 
-        public string GetAttachPathById(Guid id)
-        {
-            return Path.Combine(Directory.GetCurrentDirectory(), _defaultPathImage, id.ToString());
-        }
         public async Task<AttachWithPathModel> GetAttachByIdAsync(Guid id)
         {
-            var attach =await _context.Attaches.FirstOrDefaultAsync(x => x.Id == id);
+            var attach =await _context.Attaches
+                .ProjectTo<AttachWithPathModel>(_mapper.ConfigurationProvider)
+                .FirstOrDefaultAsync(x => x.Id == id);
             if (attach == null)
             {
                 throw new CustomException("attach not found");
             }
 
-            return new AttachWithPathModel()
-            {
-                Id = attach.Id,
-                FilePath = attach.Path,
-                MimeType = attach.MimeType,
-                Name = attach.Name
-            };
+            return attach;
         }
 
+        private string GetTempPathById(Guid id)
+        {
+            return Path.Combine(Path.GetTempPath(), "Desgram", _defaultPathImage, id.ToString());
+        }
+
+        private string GetAttachPathById(Guid id)
+        {
+            return Path.Combine(Directory.GetCurrentDirectory(), _defaultPathImage, id.ToString());
+        }
     }
 }

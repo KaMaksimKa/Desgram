@@ -1,8 +1,8 @@
 ﻿using Desgram.Api.Services.ServiceModel.Interfaces;
 
-namespace Desgram.Api.Services.ServiceModel
+namespace Desgram.Api.Services.ServiceModel.EmailMessage
 {
-    public class ChangeEmailCodeMessage:IEmailMessage
+    public class ChangeEmailCodeMessage : IEmailMessage
     {
         public string Email { get; init; }
         public string Subject { get; init; } = "Подтвердите электронный адрес для Desgram";

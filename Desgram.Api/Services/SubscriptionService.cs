@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using Desgram.Api.Infrastructure.Extensions;
 using Desgram.Api.Models.Subscription;
 using Desgram.Api.Services.Interfaces;
 using Desgram.DAL;
@@ -20,13 +21,19 @@ namespace Desgram.Api.Services
             _mapper = mapper;
         }
 
-        public async Task SubscribeAsync(Guid subscriberId, string subscriptionUserName)
+        public async Task SubscribeAsync(Guid followerId, string contentMakerName)
         {
-            var subscriber = await GetUserByIdAsync(subscriberId);
-            var subscription = await GetUserByNameAsync(subscriptionUserName);
+            var follower = await _context.Users.GetUserByIdAsync(followerId);
+            var contentMaker = await _context.Users.GetUserByNameAsync(contentMakerName);
+
+            if (contentMaker.IsPrivate)
+            {
+                throw new CustomException("you can't subscribe on private account");
+            }
 
             if (_context.UserSubscriptions
-                .Any(s => s.SubscriberId == subscriberId && s.SubscriptionId == subscription.Id && s.DeletedDate == null))
+                .Any(s => s.FollowerId == followerId && s.ContentMakerId == contentMaker.Id
+                                                     && s.DeletedDate == null))
             {
                 throw new CustomException("you've already subscribe");
             }
@@ -34,8 +41,8 @@ namespace Desgram.Api.Services
             var subscribe = new UserSubscription()
             {
                 Id = Guid.NewGuid(),
-                Subscriber = subscriber,
-                Subscription = subscription,
+                Follower = follower,
+                ContentMaker = contentMaker,
                 CreateDate = DateTimeOffset.Now.UtcDateTime,
                 DeletedDate = null
             };
@@ -45,70 +52,125 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task UnsubscribeAsync(Guid subscriberId, string subscriptionUserName)
+        public async Task UnsubscribeAsync(Guid followerId, string contentMakerName)
         {
-            var subscription = await GetUserByNameAsync(subscriptionUserName);
+            var contentMaker = await _context.Users.GetUserByNameAsync(contentMakerName);
 
             if (await _context.UserSubscriptions
-                .FirstOrDefaultAsync(s => s.SubscriberId == subscriberId
-                                          && s.SubscriptionId == subscription.Id && s.DeletedDate == null) is not {} subscribe)
+                .FirstOrDefaultAsync(s => s.FollowerId == followerId
+                                          && s.ContentMakerId == contentMaker.Id && s.DeletedDate == null) is not {} subscription)
             {
                 throw new CustomException("you've not subscribe yet");
             }
 
 
-            subscribe.DeletedDate = DateTimeOffset.Now.UtcDateTime;
+            subscription.DeletedDate = DateTimeOffset.Now.UtcDateTime;
             
             await _context.SaveChangesAsync();
         }
 
-        public async Task<List<SubscriptionModel>> GetSubscriptionsAsync(Guid userId)
+        public async Task SendSubscriptionRequest(Guid followerId, string contentMakerName)
         {
-            var user = await GetUserByIdAsync(userId);
+            if (await _context.SubscriptionRequests.AnyAsync(r =>
+                    r.FollowerId == followerId && r.ContentMaker.Name == contentMakerName 
+                                               && r.DeletedDate == null))
+            {
+                throw new CustomException("you've already send this subscription request");
+            }
 
-            var subscriptions =await _context.UserSubscriptions
-                .Where(s => s.SubscriberId == user.Id && s.DeletedDate == null)
-                .ProjectTo<SubscriptionModel>(_mapper.ConfigurationProvider)
-                .ToListAsync();
+            var follower =await _context.Users.GetUserByIdAsync(followerId);
+            var contentMaker = await _context.Users.GetUserByNameAsync(contentMakerName);
 
-            return subscriptions;
+            var subscriptionRequest = new SubscriptionRequest()
+            {
+                Id = Guid.NewGuid(),
+                Follower = follower,
+                ContentMaker = contentMaker,
+                CreateDate = DateTimeOffset.Now.UtcDateTime,
+                DeletedDate = null
+            };
+
+            await _context.SubscriptionRequests.AddAsync(subscriptionRequest);
+            await _context.SaveChangesAsync();
         }
 
-        public async Task<List<SubscriberModel>> GetSubscribersAsync(Guid userId)
+        public async Task DeleteSubscriptionRequest(Guid followerId, string contentMakerName)
         {
-            var user = await GetUserByIdAsync(userId);
+            var subscriptionRequest = await _context.SubscriptionRequests
+                .FirstOrDefaultAsync(r => 
+                    r.FollowerId == followerId && r.ContentMaker.Name == contentMakerName 
+                                               && r.DeletedDate == null);
+            if (subscriptionRequest == null)
+            {
+                throw new CustomException("you haven't send this subscription request yet");
+            }
+
+            subscriptionRequest.DeletedDate = DateTimeOffset.Now.UtcDateTime;
+
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task RespondSubscriptionRequest(bool response,Guid requestId, Guid userId)
+        {
+            var request =await _context.SubscriptionRequests
+                .FirstOrDefaultAsync(r => r.Id == requestId && r.DeletedDate == null);
+
+            if (request == null)
+            {
+                throw new CustomException("request not found");
+            }
+
+            if (request.ContentMakerId != userId)
+            {
+                throw new CustomException("you don't have enough rights");
+            }
+
+            request.DeletedDate = DateTimeOffset.Now.UtcDateTime;
+
+            var contentMaker = await _context.Users.GetUserByIdAsync(userId);
+            var follower = await _context.Users.GetUserByIdAsync(request.FollowerId);
+
+            if (response)
+            {
+                var userSubscription = new UserSubscription()
+                {
+                    Id = Guid.NewGuid(),
+                    ContentMaker = contentMaker,
+                    Follower = follower,
+                    CreateDate = DateTimeOffset.Now.UtcDateTime,
+                    DeletedDate = null
+                };
+
+                await _context.UserSubscriptions.AddAsync(userSubscription);
+            }
+
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<List<FollowingModel>> GetFollowingAsync(Guid userId)
+        {
+            var user = await _context.Users.GetUserByIdAsync(userId);
+
+            var following =await _context.UserSubscriptions
+                .Where(s => s.FollowerId == user.Id && s.DeletedDate == null)
+                .ProjectTo<FollowingModel>(_mapper.ConfigurationProvider)
+                .ToListAsync();
+
+            return following;
+        }
+
+        public async Task<List<FollowerModel>> GetFollowersAsync(Guid userId)
+        {
+            var user = await _context.Users.GetUserByIdAsync(userId);
             
-            var subscribers =await _context.UserSubscriptions
-                .Where(s => s.SubscriptionId == user.Id && s.DeletedDate == null)
-                .ProjectTo<SubscriberModel>(_mapper.ConfigurationProvider)
+            var followers =await _context.UserSubscriptions
+                .Where(s => s.ContentMakerId == user.Id && s.DeletedDate == null)
+                .ProjectTo<FollowerModel>(_mapper.ConfigurationProvider)
                 .ToListAsync();
 
-            return subscribers;
+            return followers;
 
         }
 
-        private async Task<User> GetUserByIdAsync(Guid id)
-        {
-
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
-
-            if (user == null)
-            {
-                throw new CustomException("user not found");
-            }
-
-            return user;
-        }
-
-        private async Task<User> GetUserByNameAsync(string name)
-        {
-            var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Name.ToLower() == name.ToLower());
-            if (user == null)
-            {
-                throw new CustomException("user not found");
-            }
-            return user;
-        }
     }
 }

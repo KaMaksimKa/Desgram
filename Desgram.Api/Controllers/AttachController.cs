@@ -44,7 +44,7 @@ namespace Desgram.Api.Controllers
         public async Task<FileResult> DisplayAttachById(Guid id)
         {
             var attachModel = await _attachService.GetAttachByIdAsync(id);
-            var fileStream = new FileStream(attachModel.FilePath, FileMode.Open);
+            var fileStream = new FileStream(attachModel.Path, FileMode.Open);
             return File(fileStream, attachModel.MimeType);
             
            
@@ -56,7 +56,7 @@ namespace Desgram.Api.Controllers
         {
             var attachModel = await _attachService.GetAttachByIdAsync(id);
 
-            var fileStream = new FileStream(attachModel.FilePath, FileMode.Open);
+            var fileStream = new FileStream(attachModel.Path, FileMode.Open);
             return File(fileStream, attachModel.MimeType, fileDownloadName: attachModel.Name);
         }
 

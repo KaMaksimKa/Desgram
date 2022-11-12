@@ -1,9 +1,10 @@
 ﻿using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using Desgram.Api.Infrastructure.Extensions;
 using Desgram.Api.Models.Attach;
 using Desgram.Api.Models.User;
 using Desgram.Api.Services.Interfaces;
-using Desgram.Api.Services.ServiceModel;
+using Desgram.Api.Services.ServiceModel.EmailMessage;
 using Desgram.DAL;
 using Desgram.DAL.Entities;
 using Desgram.SharedKernel;
@@ -35,14 +36,14 @@ namespace Desgram.Api.Services
         public async Task<Guid> CreateUserAsync(CreateUserModel createUser)
         {
 
-            if (await _context.Users.AnyAsync(u => u.Name == createUser.Name))
+            if (await _context.Users.IsUserExistByName(createUser.Name))
             {
-                throw new CustomException($"username {createUser.Name} busy");
+                throw new CustomException($"username is busy");
             }
 
-            if (await _context.Users.AnyAsync(u => u.Email == createUser.Email))
+            if (await _context.Users.IsUserExistByEmail(createUser.Email))
             {
-                throw new CustomException($"email {createUser.Email} busy");
+                throw new CustomException($"email is busy");
             }
 
             var code = CodeGenerator.GetCode(6);
@@ -81,6 +82,17 @@ namespace Desgram.Api.Services
 
             unconfirmedUser.DeletedDate = DateTimeOffset.Now.UtcDateTime;
 
+
+            if (await _context.Users.IsUserExistByName(unconfirmedUser.Name))
+            {
+                throw new CustomException($"username is busy");
+            }
+
+            if (await _context.Users.IsUserExistByEmail(unconfirmedUser.Email))
+            {
+                throw new CustomException($"email is busy");
+            }
+
             var user = new User()
             {
                 Id = Guid.NewGuid(),
@@ -90,15 +102,6 @@ namespace Desgram.Api.Services
                 CreatedDate = DateTimeOffset.Now.UtcDateTime
             };
 
-            if (await _context.Users.AnyAsync(u => u.Name == user.Name))
-            {
-                throw new CustomException($"username {user.Name} busy");
-            }
-
-            if (await _context.Users.AnyAsync(u => u.Email == user.Email))
-            {
-                throw new CustomException($"email {user.Email} busy");
-            }
 
             await _context.Users.AddAsync(user);
             await _context.SaveChangesAsync();
@@ -125,7 +128,7 @@ namespace Desgram.Api.Services
 
         public async Task UpdateProfileAsync(ProfileModel model, Guid userId)
         {
-            var user = await GetUserById(userId);
+            var user = await _context.Users.GetUserByIdAsync(userId);
 
             user.BirthDate = model.BirthDate;
             user.Biography = model.Biography;
@@ -136,7 +139,7 @@ namespace Desgram.Api.Services
 
         public async Task ChangePasswordAsync(ChangePasswordModel model, Guid userId)
         {
-            var user = await GetUserById(userId);
+            var user = await _context.Users.GetUserByIdAsync(userId);
 
             if (!HashHelper.Verify(model.OldPassword, user.PasswordHash))
             {
@@ -151,9 +154,9 @@ namespace Desgram.Api.Services
 
         public async Task ChangeUserNameAsync(ChangeUserNameModel model, Guid userId)
         {
-            var user = await GetUserById(userId);
+            var user = await _context.Users.GetUserByIdAsync(userId);
 
-            if (await _context.Users.AnyAsync(u=>u.Name == model.NewName))
+            if (await _context.Users.IsUserExistByName(model.NewName))
             {
                 throw new CustomException("name is busy");
             }
@@ -165,9 +168,9 @@ namespace Desgram.Api.Services
 
         public async Task<Guid> ChangeEmailAsync(ChangeEmailModel model, Guid userId)
         {
-            var user = await GetUserById(userId);
+            var user = await _context.Users.GetUserByIdAsync(userId);
 
-            if (await _context.Users.AnyAsync(u => u.Email == model.NewEmail))
+            if (await _context.Users.IsUserExistByEmail(model.NewEmail))
             {
                 throw new CustomException("email is busy");
             }
@@ -194,7 +197,7 @@ namespace Desgram.Api.Services
 
         public async Task ConfirmEmailAsync(string code, Guid unconfirmedEmailId, Guid userId)
         {
-            var user = await GetUserById(userId);
+            var user = await _context.Users.GetUserByIdAsync(userId);
 
             var unconfirmedEmail = await GetUnconfirmedEmailById(unconfirmedEmailId, userId);
 
@@ -210,9 +213,9 @@ namespace Desgram.Api.Services
 
             unconfirmedEmail.DeletedDate = DateTimeOffset.Now.UtcDateTime;
 
-            if (await _context.Users.AnyAsync(u => u.Email == unconfirmedEmail.Email))
+            if (await _context.Users.IsUserExistByEmail(unconfirmedEmail.Email))
             {
-                throw new CustomException($"email {user.Email} busy");
+                throw new CustomException($"email is busy");
             }
 
             user.Email = unconfirmedEmail.Email;
@@ -307,17 +310,6 @@ namespace Desgram.Api.Services
 
             var user = await _context.Users.Include(u=>u.Avatars).FirstOrDefaultAsync(u => u.Id == id);
 
-            if (user == null)
-            {
-                throw new CustomException("user not found");
-            }
-
-            return user;
-        }
-
-        private async Task<User> GetUserById(Guid userId)
-        {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
             if (user == null)
             {
                 throw new CustomException("user not found");

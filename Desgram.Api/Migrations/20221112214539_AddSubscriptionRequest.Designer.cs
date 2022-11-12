@@ -3,6 +3,7 @@ using System;
 using Desgram.DAL;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,10 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Desgram.Api.Migrations
 {
     [DbContext(typeof(ApplicationContext))]
-    partial class ApplicationContextModelSnapshot : ModelSnapshot
+    [Migration("20221112214539_AddSubscriptionRequest")]
+    partial class AddSubscriptionRequest
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -56,7 +58,7 @@ namespace Desgram.Api.Migrations
 
                     b.HasIndex("OwnerId");
 
-                    b.ToTable("Attaches", (string)null);
+                    b.ToTable("Attaches");
                 });
 
             modelBuilder.Entity("Desgram.DAL.Entities.BlockingUser", b =>
@@ -83,7 +85,7 @@ namespace Desgram.Api.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("BlockingUsers", (string)null);
+                    b.ToTable("BlockingUsers");
                 });
 
             modelBuilder.Entity("Desgram.DAL.Entities.Comment", b =>
@@ -117,7 +119,7 @@ namespace Desgram.Api.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Comments", (string)null);
+                    b.ToTable("Comments");
                 });
 
             modelBuilder.Entity("Desgram.DAL.Entities.HashTag", b =>
@@ -135,7 +137,7 @@ namespace Desgram.Api.Migrations
                     b.HasIndex("Title")
                         .IsUnique();
 
-                    b.ToTable("HashTags", (string)null);
+                    b.ToTable("HashTags");
                 });
 
             modelBuilder.Entity("Desgram.DAL.Entities.Like", b =>
@@ -157,7 +159,7 @@ namespace Desgram.Api.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Likes", (string)null);
+                    b.ToTable("Likes");
                 });
 
             modelBuilder.Entity("Desgram.DAL.Entities.Post", b =>
@@ -192,7 +194,7 @@ namespace Desgram.Api.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Posts", (string)null);
+                    b.ToTable("Posts");
                 });
 
             modelBuilder.Entity("Desgram.DAL.Entities.SubscriptionRequest", b =>
@@ -219,7 +221,7 @@ namespace Desgram.Api.Migrations
 
                     b.HasIndex("FollowerId");
 
-                    b.ToTable("SubscriptionRequests", (string)null);
+                    b.ToTable("SubscriptionRequests");
                 });
 
             modelBuilder.Entity("Desgram.DAL.Entities.UnconfirmedEmail", b =>
@@ -249,7 +251,7 @@ namespace Desgram.Api.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("UnconfirmedEmails", (string)null);
+                    b.ToTable("UnconfirmedEmails");
                 });
 
             modelBuilder.Entity("Desgram.DAL.Entities.UnconfirmedUser", b =>
@@ -282,7 +284,7 @@ namespace Desgram.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("UnconfirmedUsers", (string)null);
+                    b.ToTable("UnconfirmedUsers");
                 });
 
             modelBuilder.Entity("Desgram.DAL.Entities.User", b =>
@@ -326,7 +328,7 @@ namespace Desgram.Api.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("Desgram.DAL.Entities.UserSession", b =>
@@ -351,7 +353,7 @@ namespace Desgram.Api.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("UserSessions", (string)null);
+                    b.ToTable("UserSessions");
                 });
 
             modelBuilder.Entity("Desgram.DAL.Entities.UserSubscription", b =>
@@ -378,7 +380,7 @@ namespace Desgram.Api.Migrations
 
                     b.HasIndex("FollowerId");
 
-                    b.ToTable("UserSubscriptions", (string)null);
+                    b.ToTable("UserSubscriptions");
                 });
 
             modelBuilder.Entity("HashTagPost", b =>
@@ -393,7 +395,7 @@ namespace Desgram.Api.Migrations
 
                     b.HasIndex("PostsId");
 
-                    b.ToTable("HashTagPost", (string)null);
+                    b.ToTable("HashTagPost");
                 });
 
             modelBuilder.Entity("Desgram.DAL.Entities.AttachPost", b =>

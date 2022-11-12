@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using Desgram.DAL.Entities;
 
-namespace Desgram.Api.Models.Publication
+namespace Desgram.Api.Models.Comment
 {
     public class CreateCommentModel
     {
@@ -9,6 +9,6 @@ namespace Desgram.Api.Models.Publication
         public string Content { get; set; } = null!;
 
         [Required]
-        public Guid PublicationId { get; set; }
+        public Guid PostId { get; set; }
     }
 }

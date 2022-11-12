@@ -2,8 +2,8 @@
 {
     public interface ILikeService
     {
-        public Task AddLikePublicationAsync(Guid publicationId, Guid userId);
-        public Task DeleteLikePublicationAsync(Guid publicationId, Guid userId);
+        public Task AddLikePostAsync(Guid postId, Guid userId);
+        public Task DeleteLikePostAsync(Guid postId, Guid userId);
         public Task AddLikeCommentAsync(Guid commentId, Guid userId);
         public Task DeleteLikeCommentAsync(Guid commentId, Guid userId);
     }

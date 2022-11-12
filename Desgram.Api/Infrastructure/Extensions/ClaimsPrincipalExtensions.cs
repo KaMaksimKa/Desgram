@@ -1,9 +1,9 @@
 ﻿using Desgram.SharedKernel.Exceptions;
 using System.Security.Claims;
 
-namespace Desgram.Api.Infrastructure
+namespace Desgram.Api.Infrastructure.Extensions
 {
-    public static class ClaimsPrincipalExtension
+    public static class ClaimsPrincipalExtensions
     {
         public static Guid GetUserId(this ClaimsPrincipal principal)
         {
@@ -25,6 +25,18 @@ namespace Desgram.Api.Infrastructure
             }
 
             return sessionGuid;
+        }
+
+        public static Guid GetRefreshTokenId(this ClaimsPrincipal principal)
+        {
+            var guidString = principal.Claims.FirstOrDefault(c => c.Type == AppClaimTypes.RefreshTokenId)?.Value;
+
+            if (!Guid.TryParse(guidString, out var guid))
+            {
+                throw new CustomException("token is invalid");
+            }
+
+            return guid;
         }
     }
 }
