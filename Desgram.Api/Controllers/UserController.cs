@@ -1,4 +1,5 @@
-﻿using Desgram.Api.Infrastructure.Extensions;
+﻿using System.ComponentModel.DataAnnotations;
+using Desgram.Api.Infrastructure.Extensions;
 using Desgram.Api.Models.Attach;
 using Desgram.Api.Models.User;
 using Desgram.Api.Services;
@@ -40,6 +41,7 @@ namespace Desgram.Api.Controllers
         public async Task<UserModel> GetCurrentUser() =>
             await _userService.GetUserByIdAsync(User.GetUserId());
 
+        [AllowAnonymous]
         [HttpGet]
         public async Task<List<UserModel>> GetUsers() => await _userService.GetUsersAsync();
 
@@ -58,6 +60,10 @@ namespace Desgram.Api.Controllers
         [HttpPost]
         public  async Task ChangePasswordAsync(ChangePasswordModel model) => 
             await _userService.ChangePasswordAsync(model, User.GetUserId());
+
+        [HttpPost]
+        public async Task ChangeAccountAvailability([Required]bool isPrivate) =>
+            await _userService.ChangeAccountAvailabilityAsync(isPrivate, User.GetUserId());
 
         [HttpPost]
         public async Task<Guid> ChangeEmail(ChangeEmailModel model) =>

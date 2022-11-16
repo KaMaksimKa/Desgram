@@ -2,14 +2,8 @@
 
 namespace Desgram.Api.Models.Post
 {
-    public class PostByHashtagRequestModel
+    public class PostByHashtagRequestModel:PostRequestModel
     {
-        [Required]
-        public int Skip { get; set; }
-
-        [Required]
-        public int Take { get; set; }
-
         [Required] 
         public string Hashtag { get; set; } = null!;
     }

@@ -1,16 +1,13 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Desgram.Api.Models.Post
+namespace Desgram.Api.Models
 {
-    public class PostByUserNameRequestModel
+    public class SkipTakeModel
     {
         [Required]
         public int Skip { get; set; }
 
         [Required]
         public int Take { get; set; }
-
-        [Required]
-        public string UserName { get; set; } = null!;
     }
 }

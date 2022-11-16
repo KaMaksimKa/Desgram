@@ -1,6 +1,7 @@
 using Desgram.Api;
 using Desgram.Api.Config;
 using Desgram.Api.Infrastructure.MiddleWares;
+using Desgram.Api.Mapper;
 using Desgram.Api.Services;
 using Desgram.Api.Services.Interfaces;
 using Desgram.DAL;

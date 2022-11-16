@@ -1,5 +1,6 @@
 ﻿using Desgram.Api.Models.Attach;
 using Desgram.Api.Models.User;
+using System.Security.Principal;
 
 namespace Desgram.Api.Services.Interfaces
 {
@@ -17,6 +18,7 @@ namespace Desgram.Api.Services.Interfaces
         public Task<Guid> ChangeEmailAsync(ChangeEmailModel model, Guid userId);
         public Task ConfirmEmailAsync(string code, Guid unconfirmedEmailId, Guid userId);
         public Task SendChangeEmailCodeAsync(Guid unconfirmedEmailId, Guid userId);
+        public Task ChangeAccountAvailabilityAsync(bool isPrivate, Guid userId);
 
     }
 }

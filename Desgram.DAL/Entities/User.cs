@@ -18,7 +18,6 @@
         public virtual ICollection<UserSession> Sessions { get; set; } = null!;
         public virtual ICollection<BlockingUser> BlockedUsers { get; set; } = null!;
         public virtual ICollection<Post> Posts { get; set; } = null!;
-        public virtual ICollection<SubscriptionRequest> SubscriptionRequests { get; set; } = null!;
 
     }
 }

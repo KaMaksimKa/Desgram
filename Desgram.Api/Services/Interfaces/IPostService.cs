@@ -12,6 +12,6 @@ namespace Desgram.Api.Services.Interfaces
         public Task<List<PostModel>> GetAllPostsAsync(PostRequestModel model, Guid userId);
         public Task<List<PostModel>> GetPostByHashTagAsync(PostByHashtagRequestModel model,Guid userId);
         public Task<List<PostModel>> GetSubscriptionsFeedAsync(PostRequestModel model,Guid userId);
-        public Task<List<PostModel>> GetPostsByUserName(PostByUserNameRequestModel model, Guid userId);
+        public Task<List<PostModel>> GetPostsByUserIdAsync(PostByUserIdRequestModel model, Guid userId);
     }
 }

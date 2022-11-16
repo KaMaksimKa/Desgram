@@ -8,6 +8,7 @@ using Desgram.DAL.Entities;
 using Desgram.SharedKernel.Exceptions;
 using Microsoft.EntityFrameworkCore;
 
+
 namespace Desgram.Api.Services
 {
     public class PostService:IPostService
@@ -122,7 +123,7 @@ namespace Desgram.Api.Services
         public async Task<List<PostModel>> GetAllPostsAsync(PostRequestModel model, Guid userId)
         {
             var posts =(await _context.Posts
-                .Where(p => p.DeletedDate == null && !p.User.IsPrivate)
+                .GetAvailablePostsByUserId(userId)
                 .Skip(model.Skip).Take(model.Take)
                 .ProjectTo<PostModel>(_mapper.ConfigurationProvider)
                 .ToListAsync());
@@ -135,8 +136,8 @@ namespace Desgram.Api.Services
         public async Task<List<PostModel>> GetPostByHashTagAsync(PostByHashtagRequestModel model,Guid userId)
         {
             var posts = await _context.Posts
-                .Where(p =>p.DeletedDate == null && !p.User.IsPrivate
-                           && p.HashTags.Any(tag => tag.Title == model.Hashtag))
+                .GetAvailablePostsByUserId(userId)
+                .Where(p => p.HashTags.Any(tag => tag.Title == model.Hashtag))
                 .Skip(model.Skip).Take(model.Take)
                 .ProjectTo<PostModel>(_mapper.ConfigurationProvider)
                 .ToListAsync();
@@ -150,7 +151,7 @@ namespace Desgram.Api.Services
         {
 
             var posts = await _context.UserSubscriptions
-                .Where(s=>s.FollowerId == userId && s.DeletedDate == null)
+                .Where(s=>s.FollowerId == userId && s.DeletedDate == null && s.IsApproved)
                 .Select(s=>s.ContentMaker)
                 .SelectMany(u=>u.Posts)
                 .Where(p=>p.DeletedDate == null)
@@ -163,19 +164,19 @@ namespace Desgram.Api.Services
             return posts;
         }
 
-        public async Task<List<PostModel>> GetPostsByUserName(PostByUserNameRequestModel model, Guid userId)
+        public async Task<List<PostModel>> GetPostsByUserIdAsync(PostByUserIdRequestModel model, Guid userId)
         {
-            var contentMaker = await _context.Users.GetUserByNameAsync(model.UserName);
+            var contentMaker = await _context.Users.GetUserByIdAsync(model.UserId);
 
             if (contentMaker.IsPrivate &&
-               !(await _context.UserSubscriptions.AnyAsync(s =>s.DeletedDate == null 
-               && s.ContentMakerId == contentMaker.Id && s.FollowerId == userId)))
+               !(await _context.UserSubscriptions.AnyAsync(s =>s.DeletedDate == null && s.IsApproved
+               && (s.ContentMakerId == contentMaker.Id && s.FollowerId == userId)) || contentMaker.Id == userId))
             {
                 throw new CustomException("you don't have enough rights");
             }
 
             var publications =await _context.Users
-                .Where(u=>u.Name == model.UserName)
+                .Where(u=>u.Id == model.UserId)
                 .SelectMany(u => u.Posts)
                 .Where(p=>p.DeletedDate == null)
                 .Skip(model.Skip).Take(model.Take)

@@ -13,6 +13,7 @@ namespace Desgram.DAL.Entities
         public Guid ContentMakerId { get; set; }
         public DateTimeOffset CreateDate { get; set; }
         public DateTimeOffset? DeletedDate { get; set; }
+        public bool IsApproved { get; set; }
 
         public virtual User Follower { get; set; } = null!;
         public virtual User ContentMaker { get; set; } = null!;

@@ -45,6 +45,12 @@ namespace Desgram.Api.Controllers
             return await _postService.GetSubscriptionsFeedAsync(model,User.GetUserId());
         }
 
+        [HttpGet]
+        public async Task<List<PostModel>> GetPostsByUserId([FromQuery] PostByUserIdRequestModel model)
+        {
+            return await _postService.GetPostsByUserIdAsync(model, User.GetUserId());
+        }
+
         [HttpPost]
         public async Task CreatePost(CreatePostModel model)
         {
@@ -52,6 +58,7 @@ namespace Desgram.Api.Controllers
             await _postService.CreatePostAsync(model, userId);
         }
 
+        [Route("{postId}")]
         [HttpPost]
         public async Task DeletePost(Guid postId)
         {
@@ -87,6 +94,7 @@ namespace Desgram.Api.Controllers
             await _commentService.AddCommentAsync(model, userId);
         }
 
+        [Route("{commentId}")]
         [HttpPost]
         public async Task DeleteComment(Guid commentId)
         {
@@ -101,22 +109,22 @@ namespace Desgram.Api.Controllers
             await _commentService.UpdateCommentAsync(model, userId);
         }
 
-        [Route("{postId}")]
         [AllowAnonymous]
         [HttpGet]
         public async Task<List<CommentModel>> GetCommentsByPost(Guid postId)
         {
-            return await _commentService.GetCommentsAsync(postId);
+            return await _commentService.GetCommentsAsync(postId,User.GetUserId());
         }
 
+        [Route("{postId}")]
         [HttpPost]
         public async Task AddLikePost(Guid postId)
         {
             var userId = User.GetUserId();
             await _likeService.AddLikePostAsync(postId,userId);
         }
-       
 
+        [Route("{postId}")]
         [HttpPost]
         public async Task DeleteLikePost(Guid postId)
         {
@@ -124,15 +132,15 @@ namespace Desgram.Api.Controllers
             await _likeService.DeleteLikePostAsync(postId, userId);
         }
 
-
+        [Route("{commentId}")]
         [HttpPost]
         public async Task AddLikeComment(Guid commentId)
         {
             var userId = User.GetUserId();
             await _likeService.AddLikeCommentAsync(commentId, userId);
         }
-  
 
+        [Route("{commentId}")]
         [HttpPost]
         public async Task DeleteLikeComment(Guid commentId)
         {

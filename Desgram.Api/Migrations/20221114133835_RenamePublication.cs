@@ -5,13 +5,21 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Desgram.Api.Migrations
 {
-    public partial class RenamePublicationToPost : Migration
+    public partial class RenamePublication : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropForeignKey(
                 name: "FK_Comments_Publications_PublicationId",
                 table: "Comments");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_UserSubscriptions_Users_SubscriberId",
+                table: "UserSubscriptions");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_UserSubscriptions_Users_SubscriptionId",
+                table: "UserSubscriptions");
 
             migrationBuilder.DropTable(
                 name: "AttachPublications");
@@ -26,6 +34,26 @@ namespace Desgram.Api.Migrations
                 name: "Publications");
 
             migrationBuilder.RenameColumn(
+                name: "SubscriptionId",
+                table: "UserSubscriptions",
+                newName: "FollowerId");
+
+            migrationBuilder.RenameColumn(
+                name: "SubscriberId",
+                table: "UserSubscriptions",
+                newName: "ContentMakerId");
+
+            migrationBuilder.RenameIndex(
+                name: "IX_UserSubscriptions_SubscriptionId",
+                table: "UserSubscriptions",
+                newName: "IX_UserSubscriptions_FollowerId");
+
+            migrationBuilder.RenameIndex(
+                name: "IX_UserSubscriptions_SubscriberId",
+                table: "UserSubscriptions",
+                newName: "IX_UserSubscriptions_ContentMakerId");
+
+            migrationBuilder.RenameColumn(
                 name: "PublicationId",
                 table: "Comments",
                 newName: "PostId");
@@ -34,6 +62,13 @@ namespace Desgram.Api.Migrations
                 name: "IX_Comments_PublicationId",
                 table: "Comments",
                 newName: "IX_Comments_PostId");
+
+            migrationBuilder.AddColumn<bool>(
+                name: "IsPrivate",
+                table: "Users",
+                type: "boolean",
+                nullable: false,
+                defaultValue: false);
 
             migrationBuilder.CreateTable(
                 name: "Posts",
@@ -54,6 +89,33 @@ namespace Desgram.Api.Migrations
                     table.ForeignKey(
                         name: "FK_Posts_Users_UserId",
                         column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SubscriptionRequests",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    FollowerId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ContentMakerId = table.Column<Guid>(type: "uuid", nullable: false),
+                    CreateDate = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    DeletedDate = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SubscriptionRequests", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_SubscriptionRequests_Users_ContentMakerId",
+                        column: x => x.ContentMakerId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_SubscriptionRequests_Users_FollowerId",
+                        column: x => x.FollowerId,
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -151,11 +213,37 @@ namespace Desgram.Api.Migrations
                 table: "Posts",
                 column: "UserId");
 
+            migrationBuilder.CreateIndex(
+                name: "IX_SubscriptionRequests_ContentMakerId",
+                table: "SubscriptionRequests",
+                column: "ContentMakerId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SubscriptionRequests_FollowerId",
+                table: "SubscriptionRequests",
+                column: "FollowerId");
+
             migrationBuilder.AddForeignKey(
                 name: "FK_Comments_Posts_PostId",
                 table: "Comments",
                 column: "PostId",
                 principalTable: "Posts",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Cascade);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_UserSubscriptions_Users_ContentMakerId",
+                table: "UserSubscriptions",
+                column: "ContentMakerId",
+                principalTable: "Users",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Cascade);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_UserSubscriptions_Users_FollowerId",
+                table: "UserSubscriptions",
+                column: "FollowerId",
+                principalTable: "Users",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Cascade);
         }
@@ -165,6 +253,14 @@ namespace Desgram.Api.Migrations
             migrationBuilder.DropForeignKey(
                 name: "FK_Comments_Posts_PostId",
                 table: "Comments");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_UserSubscriptions_Users_ContentMakerId",
+                table: "UserSubscriptions");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_UserSubscriptions_Users_FollowerId",
+                table: "UserSubscriptions");
 
             migrationBuilder.DropTable(
                 name: "AttachesPosts");
@@ -176,7 +272,34 @@ namespace Desgram.Api.Migrations
                 name: "LikePost");
 
             migrationBuilder.DropTable(
+                name: "SubscriptionRequests");
+
+            migrationBuilder.DropTable(
                 name: "Posts");
+
+            migrationBuilder.DropColumn(
+                name: "IsPrivate",
+                table: "Users");
+
+            migrationBuilder.RenameColumn(
+                name: "FollowerId",
+                table: "UserSubscriptions",
+                newName: "SubscriptionId");
+
+            migrationBuilder.RenameColumn(
+                name: "ContentMakerId",
+                table: "UserSubscriptions",
+                newName: "SubscriberId");
+
+            migrationBuilder.RenameIndex(
+                name: "IX_UserSubscriptions_FollowerId",
+                table: "UserSubscriptions",
+                newName: "IX_UserSubscriptions_SubscriptionId");
+
+            migrationBuilder.RenameIndex(
+                name: "IX_UserSubscriptions_ContentMakerId",
+                table: "UserSubscriptions",
+                newName: "IX_UserSubscriptions_SubscriberId");
 
             migrationBuilder.RenameColumn(
                 name: "PostId",
@@ -309,6 +432,22 @@ namespace Desgram.Api.Migrations
                 table: "Comments",
                 column: "PublicationId",
                 principalTable: "Publications",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Cascade);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_UserSubscriptions_Users_SubscriberId",
+                table: "UserSubscriptions",
+                column: "SubscriberId",
+                principalTable: "Users",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Cascade);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_UserSubscriptions_Users_SubscriptionId",
+                table: "UserSubscriptions",
+                column: "SubscriptionId",
+                principalTable: "Users",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Cascade);
         }

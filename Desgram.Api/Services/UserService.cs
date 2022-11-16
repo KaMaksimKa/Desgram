@@ -242,6 +242,15 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
+        public async Task ChangeAccountAvailabilityAsync(bool isPrivate, Guid userId)
+        {
+            var user = await _context.Users.GetUserByIdAsync(userId);
+            
+            user.IsPrivate = isPrivate;
+
+            await _context.SaveChangesAsync();
+        }
+
         public async Task<List<UserModel>> GetUsersAsync()
         {
             var users = await _context.Users

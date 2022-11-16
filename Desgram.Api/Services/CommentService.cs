@@ -61,11 +61,13 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task<List<CommentModel>> GetCommentsAsync(Guid postId)
+        public async Task<List<CommentModel>> GetCommentsAsync(Guid postId, Guid userId)
         {
             var comments = await _context.Comments
                 .Where(c => c.PostId == postId && c.DeletedDate == null)
                 .ProjectTo<CommentModel>(_mapper.ConfigurationProvider).ToListAsync();
+
+            AfterMapComment(comments, userId);
 
             return comments;
         }
@@ -83,6 +85,23 @@ namespace Desgram.Api.Services
             comment.UpdatedDate = DateTimeOffset.Now.UtcDateTime;
 
             await _context.SaveChangesAsync();
+        }
+        private void AfterMapComment(List<CommentModel> comment, Guid userId)
+        {
+            SetIsLikedComment(comment, userId);
+        }
+
+        private void SetIsLikedComment(List<CommentModel> comments, Guid userId)
+        {
+            var commentsLikes = _context.Comments
+                .Where(c => comments.Select(com => com.Id).Contains(c.Id)
+                            && c.Likes.Any(l => l.UserId == userId && l.DeletedDate == null))
+                .Select(p => p.Id);
+            
+            foreach (var commentModel in comments.Where(p => commentsLikes.Contains(p.Id)))
+            {
+                commentModel.IsLiked = true;
+            }
         }
     }
 }

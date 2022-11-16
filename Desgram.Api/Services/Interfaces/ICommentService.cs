@@ -6,7 +6,7 @@ namespace Desgram.Api.Services.Interfaces
     {
         public Task AddCommentAsync(CreateCommentModel model, Guid userId);
         public Task DeleteCommentAsync(Guid commentId, Guid userId);
-        public Task<List<CommentModel>> GetCommentsAsync(Guid publicationId);
+        public Task<List<CommentModel>> GetCommentsAsync(Guid publicationId, Guid userId);
         public Task UpdateCommentAsync(UpdateCommentModel model, Guid userId);
     }
 }

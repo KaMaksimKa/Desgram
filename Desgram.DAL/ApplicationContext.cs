@@ -21,7 +21,6 @@ namespace Desgram.DAL
         public DbSet<BlockingUser> BlockingUsers { get; init; } = null!;
         public DbSet<UnconfirmedUser> UnconfirmedUsers { get; init; } = null!;
         public DbSet<UnconfirmedEmail> UnconfirmedEmails { get; init; } = null!;
-        public DbSet<SubscriptionRequest> SubscriptionRequests { get; init; } = null!;
 
         public ApplicationContext(DbContextOptions<ApplicationContext> options) :base(options) 
         {
@@ -49,8 +48,6 @@ namespace Desgram.DAL
             modelBuilder.Entity<User>().HasMany(u => u.BlockedUsers)
                 .WithOne(b => b.User);
 
-            modelBuilder.Entity<User>().HasMany(u => u.SubscriptionRequests)
-                .WithOne(r => r.ContentMaker);
         }
     }
 }

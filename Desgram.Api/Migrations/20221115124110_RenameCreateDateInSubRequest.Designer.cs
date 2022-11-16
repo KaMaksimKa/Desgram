@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Desgram.Api.Migrations
 {
     [DbContext(typeof(ApplicationContext))]
-    [Migration("20221112210212_RenamePublicationToPost")]
-    partial class RenamePublicationToPost
+    [Migration("20221115124110_RenameCreateDateInSubRequest")]
+    partial class RenameCreateDateInSubRequest
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -197,6 +197,33 @@ namespace Desgram.Api.Migrations
                     b.ToTable("Posts");
                 });
 
+            modelBuilder.Entity("Desgram.DAL.Entities.SubscriptionRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ContentMakerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DeletedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("FollowerId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContentMakerId");
+
+                    b.HasIndex("FollowerId");
+
+                    b.ToTable("SubscriptionRequests");
+                });
+
             modelBuilder.Entity("Desgram.DAL.Entities.UnconfirmedEmail", b =>
                 {
                     b.Property<Guid>("Id")
@@ -282,6 +309,9 @@ namespace Desgram.Api.Migrations
                     b.Property<string>("FullName")
                         .HasColumnType("text");
 
+                    b.Property<bool>("IsPrivate")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
@@ -332,23 +362,23 @@ namespace Desgram.Api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("ContentMakerId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTimeOffset>("CreateDate")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTimeOffset?>("DeletedDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid>("SubscriberId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("SubscriptionId")
+                    b.Property<Guid>("FollowerId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SubscriberId");
+                    b.HasIndex("ContentMakerId");
 
-                    b.HasIndex("SubscriptionId");
+                    b.HasIndex("FollowerId");
 
                     b.ToTable("UserSubscriptions");
                 });
@@ -487,6 +517,25 @@ namespace Desgram.Api.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Desgram.DAL.Entities.SubscriptionRequest", b =>
+                {
+                    b.HasOne("Desgram.DAL.Entities.User", "ContentMaker")
+                        .WithMany("SubscriptionRequests")
+                        .HasForeignKey("ContentMakerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Desgram.DAL.Entities.User", "Follower")
+                        .WithMany()
+                        .HasForeignKey("FollowerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ContentMaker");
+
+                    b.Navigation("Follower");
+                });
+
             modelBuilder.Entity("Desgram.DAL.Entities.UnconfirmedEmail", b =>
                 {
                     b.HasOne("Desgram.DAL.Entities.User", "User")
@@ -511,21 +560,21 @@ namespace Desgram.Api.Migrations
 
             modelBuilder.Entity("Desgram.DAL.Entities.UserSubscription", b =>
                 {
-                    b.HasOne("Desgram.DAL.Entities.User", "Subscriber")
-                        .WithMany("Subscriptions")
-                        .HasForeignKey("SubscriberId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("Desgram.DAL.Entities.User", "ContentMaker")
-                        .WithMany("Subscribers")
-                        .HasForeignKey("SubscriptionId")
+                        .WithMany("Followers")
+                        .HasForeignKey("ContentMakerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Subscriber");
+                    b.HasOne("Desgram.DAL.Entities.User", "Follower")
+                        .WithMany("Following")
+                        .HasForeignKey("FollowerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("ContentMaker");
+
+                    b.Navigation("Follower");
                 });
 
             modelBuilder.Entity("HashTagPost", b =>
@@ -631,13 +680,15 @@ namespace Desgram.Api.Migrations
 
                     b.Navigation("BlockedUsers");
 
+                    b.Navigation("Followers");
+
+                    b.Navigation("Following");
+
                     b.Navigation("Posts");
 
                     b.Navigation("Sessions");
 
-                    b.Navigation("Subscribers");
-
-                    b.Navigation("Subscriptions");
+                    b.Navigation("SubscriptionRequests");
                 });
 #pragma warning restore 612, 618
         }
