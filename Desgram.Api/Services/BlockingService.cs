@@ -1,10 +1,12 @@
 ﻿using AutoMapper;
 using AutoMapper.QueryableExtensions;
-using Desgram.Api.Models.Blocked;
+using Desgram.Api.Infrastructure.Extensions;
+using Desgram.Api.Models.User;
 using Desgram.Api.Services.Interfaces;
 using Desgram.DAL;
 using Desgram.DAL.Entities;
-using Desgram.SharedKernel.Exceptions;
+using Desgram.SharedKernel.Exceptions.BadRequestExceptions;
+using Desgram.SharedKernel.Exceptions.NotFoundExceptions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Desgram.Api.Services
@@ -20,20 +22,17 @@ namespace Desgram.Api.Services
             _mapper = mapper;
         }
 
-        public async Task BlockUserAsync(Guid userId, string blockName)
+
+        public async Task BlockUserAsync(Guid blockUserId, Guid userId)
         {
-            if (await _context.Users.FirstOrDefaultAsync(u => u.Id == userId) is not { } user
-                || await _context.Users.FirstOrDefaultAsync(u=>u.Name == blockName) is not {} blockUser)
+
+            if (await CheckBlockingAsync(blockUserId, userId))
             {
-                throw new CustomException("user not found");
+                throw new BlockingAlreadyExistsException();
             }
 
-            if (await _context.BlockingUsers
-                    .FirstOrDefaultAsync(b =>
-                        b.UserId == userId && b.Blocked.Name == blockName && b.DeletedDate == null) != null)
-            {
-                throw new CustomException("this user have already blocked");
-            }
+            var blockUser = await _context.Users.GetUserByIdAsync(blockUserId);
+            var user = await _context.Users.GetUserByIdAsync(userId);
 
             var blockingUser = new BlockingUser()
             {
@@ -49,40 +48,46 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task UnblockUserAsync(Guid userId, string unblockName)
+        public async Task UnblockUserAsync(Guid blockUserId, Guid userId)
         {
-            if (await _context.Users.FirstOrDefaultAsync(u => u.Id == userId) == null
-                || await _context.Users.FirstOrDefaultAsync(u => u.Name == unblockName) == null)
-            {
-                throw new CustomException("user not found");
-            }
-
-            if (await _context.BlockingUsers
-                    .FirstOrDefaultAsync(b =>
-                        b.UserId == userId && b.Blocked.Name == unblockName && b.DeletedDate == null) 
-                is not {} blockingUser)
-            {
-                throw new CustomException("this user haven't blocked yet");
-            }
+            var blockingUser = await GetBlockingAsync(blockUserId, userId);
 
             blockingUser.DeletedDate = DateTimeOffset.Now.UtcDateTime;
 
             await _context.SaveChangesAsync();
         }
 
-        public async Task<List<BlockedUserModel>> GetBlockedUsersAsync(Guid userId)
+        public async Task<List<PartialUserModel>> GetBlockedUsersAsync(Guid userId)
         {
-            if (await _context.Users.FirstOrDefaultAsync(u => u.Id == userId) == null)
-            {
-                throw new CustomException("user not found");
-            }
-
             var blockedUsers = await _context.BlockingUsers
                 .Where(b => b.UserId == userId && b.DeletedDate == null)
-                .ProjectTo<BlockedUserModel>(_mapper.ConfigurationProvider)
+                .Select(b=>b.Blocked)
+                .ProjectTo<PartialUserModel>(_mapper.ConfigurationProvider)
                 .ToListAsync();
 
             return blockedUsers;
+        }
+
+        private async Task<BlockingUser> GetBlockingAsync(Guid blockUserId, Guid userId)
+        {
+            var blocking = await _context.BlockingUsers
+                .FirstOrDefaultAsync(b => b.UserId == userId
+                                          && b.BlockedId == blockUserId
+                                          && b.DeletedDate == null);
+            if (blocking == null)
+            {
+                throw new BlockingNotFoundException();
+            }
+
+            return blocking;
+        }
+
+        private async Task<bool> CheckBlockingAsync(Guid blockUserId, Guid userId)
+        {
+            return await _context.BlockingUsers
+                .AnyAsync(b => b.UserId == userId
+                                          && b.BlockedId == blockUserId
+                                          && b.DeletedDate == null);
         }
     }
 }

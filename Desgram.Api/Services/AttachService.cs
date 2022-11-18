@@ -2,9 +2,9 @@
 using AutoMapper.QueryableExtensions;
 using Desgram.Api.Services.Interfaces;
 using Desgram.DAL;
-using Desgram.SharedKernel.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using Desgram.Api.Models.Attach;
+using Desgram.SharedKernel.Exceptions.NotFoundExceptions;
 
 namespace Desgram.Api.Services
 {
@@ -56,8 +56,10 @@ namespace Desgram.Api.Services
 
             if (!fileInfoTemp.Exists)
             {
-                throw new CustomException("file not found");
+                throw new AttachNotFoundException();
             }
+
+            
 
             var pathAttach = GetAttachPathById(model.Id);
 
@@ -80,7 +82,7 @@ namespace Desgram.Api.Services
                 .FirstOrDefaultAsync(x => x.Id == id);
             if (attach == null)
             {
-                throw new CustomException("attach not found");
+                throw new AttachNotFoundException();
             }
 
             return attach;

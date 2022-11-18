@@ -1,6 +1,7 @@
+using AspNetCoreRateLimit;
 using Desgram.Api;
 using Desgram.Api.Config;
-using Desgram.Api.Infrastructure.MiddleWares;
+using Desgram.Api.Infrastructure.Middlewares;
 using Desgram.Api.Mapper;
 using Desgram.Api.Services;
 using Desgram.Api.Services.Interfaces;
@@ -54,6 +55,9 @@ builder.Services.AddSwaggerGen(options =>
             new List<string>()
         }
     });
+
+    options.SwaggerDoc("Auth", new OpenApiInfo { Title = "Auth" });
+    options.SwaggerDoc("Api", new OpenApiInfo { Title = "Api" });
 } );
 
 var connectionString = builder.Configuration.GetConnectionString(Constants.ConnectionStringNames.PostgresSql);
@@ -66,8 +70,17 @@ builder.Services.AddDbContext<ApplicationContext>(optionsBuilder =>
 });
 
 builder.Services.AddAutoMapper(typeof(MapperProfile).Assembly);
-builder.Services.AddSingleton<IActionContextAccessor, ActionContextAccessor>();
 
+builder.Services.AddOptions();
+builder.Services.AddMemoryCache();
+builder.Services.Configure<ClientRateLimitOptions>(builder.Configuration.GetSection("ClientRateLimiting"));
+builder.Services.Configure<ClientRateLimitPolicies>(builder.Configuration.GetSection("ClientRateLimitPolicies"));
+builder.Services.AddInMemoryRateLimiting();
+builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
+
+
+
+builder.Services.AddSingleton<IActionContextAccessor, ActionContextAccessor>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAttachService,AttachService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -120,14 +133,22 @@ using (var scope = app.Services.CreateScope())
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("Api/swagger.json", "Api");
+        options.SwaggerEndpoint("Auth/swagger.json", "Auth");
+    } );
 }
 
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
+
+app.UseClientRateLimiting();
+
 app.UseAuthorization();
 
+app.UseGlobalErrorWrapper();
 app.UseUserSessionValidator();
 
 app.MapControllers();

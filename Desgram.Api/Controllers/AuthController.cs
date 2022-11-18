@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Desgram.Api.Controllers
 {
+    [ApiExplorerSettings(GroupName = "Auth")]
     [Authorize]
     [ApiController]
     [Route("api/[controller]/[action]")]
@@ -32,7 +33,7 @@ namespace Desgram.Api.Controllers
             return await _authService.GetTokenByRefreshTokenAsync(model.RefreshToken);
         }
 
-
+        [ApiExplorerSettings(GroupName = "Api")]
         [HttpPost]
         public async Task Logout()
         {
@@ -40,6 +41,7 @@ namespace Desgram.Api.Controllers
             await _authService.LogoutBySessionIdAsync(sessionId);
         }
 
+        [ApiExplorerSettings(GroupName = "Api")]
         [HttpPost]
         public async Task LogoutAllDevice()
         {

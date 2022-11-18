@@ -9,8 +9,9 @@ using Desgram.DAL;
 using Desgram.DAL.Entities;
 using Desgram.SharedKernel;
 using Desgram.SharedKernel.Exceptions;
+using Desgram.SharedKernel.Exceptions.BadRequestExceptions;
+using Desgram.SharedKernel.Exceptions.NotFoundExceptions;
 using Microsoft.EntityFrameworkCore;
-using SharedKernel;
 
 namespace Desgram.Api.Services
 {
@@ -36,14 +37,14 @@ namespace Desgram.Api.Services
         public async Task<Guid> CreateUserAsync(CreateUserModel createUser)
         {
 
-            if (await _context.Users.IsUserExistByName(createUser.Name))
+            if (!(await IsUserNameFree(createUser.UserName)))
             {
-                throw new CustomException($"username is busy");
+                throw new UserNameIsBusyException();
             }
 
-            if (await _context.Users.IsUserExistByEmail(createUser.Email))
+            if (!(await IsEmailFree(createUser.Email)))
             {
-                throw new CustomException($"email is busy");
+                throw new EmailIsBusyException();
             }
 
             var code = CodeGenerator.GetCode(6);
@@ -54,14 +55,12 @@ namespace Desgram.Api.Services
                 CodeHash = HashHelper.GetHash(code),
                 ExpiredDate = DateTimeOffset.Now.UtcDateTime.AddMinutes(5),
                 Email = createUser.Email,
-                Name = createUser.Name,
+                Name = createUser.UserName,
                 PasswordHash = HashHelper.GetHash(createUser.Password)
             };
 
             await _context.UnconfirmedUsers.AddAsync(unconfirmedUser);
             await _context.SaveChangesAsync();
-
-            await SendSingUpCodeAsync(unconfirmedUser.Id);
 
             return unconfirmedUser.Id;
         }
@@ -72,26 +71,15 @@ namespace Desgram.Api.Services
 
             if (DateTimeOffset.Now.UtcDateTime > unconfirmedUser.ExpiredDate)
             {
-                throw new CustomException("code has expired");
+                throw new ConfirmCodeHasExpiredException();
             }
 
             if (!HashHelper.Verify(code, unconfirmedUser.CodeHash))
             {
-                throw new CustomException("invalid code");
+                throw new InvalidConfirmCodeException();
             }
 
             unconfirmedUser.DeletedDate = DateTimeOffset.Now.UtcDateTime;
-
-
-            if (await _context.Users.IsUserExistByName(unconfirmedUser.Name))
-            {
-                throw new CustomException($"username is busy");
-            }
-
-            if (await _context.Users.IsUserExistByEmail(unconfirmedUser.Email))
-            {
-                throw new CustomException($"email is busy");
-            }
 
             var user = new User()
             {
@@ -114,7 +102,7 @@ namespace Desgram.Api.Services
 
             if (DateTimeOffset.Now.UtcDateTime > unconfirmedUser.ExpiredDate)
             {
-                throw new CustomException("code has expired");
+                throw new ConfirmCodeHasExpiredException();
             }
 
             var code = CodeGenerator.GetCode(6);
@@ -143,7 +131,7 @@ namespace Desgram.Api.Services
 
             if (!HashHelper.Verify(model.OldPassword, user.PasswordHash))
             {
-                throw new CustomException("password is not correct");
+                throw new InvalidPasswordException();
             }
 
             user.PasswordHash = model.NewPassword;
@@ -156,9 +144,9 @@ namespace Desgram.Api.Services
         {
             var user = await _context.Users.GetUserByIdAsync(userId);
 
-            if (await _context.Users.IsUserExistByName(model.NewName))
+            if (!(await IsUserNameFree(model.NewName)))
             {
-                throw new CustomException("name is busy");
+                throw new UserNameIsBusyException();
             }
 
             user.Name = model.NewName;
@@ -170,9 +158,9 @@ namespace Desgram.Api.Services
         {
             var user = await _context.Users.GetUserByIdAsync(userId);
 
-            if (await _context.Users.IsUserExistByEmail(model.NewEmail))
+            if (!(await IsEmailFree(model.NewEmail)))
             {
-                throw new CustomException("email is busy");
+                throw new EmailIsBusyException();
             }
 
             var code = CodeGenerator.GetCode(6);
@@ -203,20 +191,15 @@ namespace Desgram.Api.Services
 
             if (DateTimeOffset.Now.UtcDateTime > unconfirmedEmail.ExpiredDate)
             {
-                throw new CustomException("code has expired");
+                throw new ConfirmCodeHasExpiredException();
             }
 
             if (!HashHelper.Verify(code, unconfirmedEmail.CodeHash))
             {
-                throw new CustomException("invalid code");
+                throw new InvalidConfirmCodeException();
             }
 
             unconfirmedEmail.DeletedDate = DateTimeOffset.Now.UtcDateTime;
-
-            if (await _context.Users.IsUserExistByEmail(unconfirmedEmail.Email))
-            {
-                throw new CustomException($"email is busy");
-            }
 
             user.Email = unconfirmedEmail.Email;
 
@@ -230,7 +213,7 @@ namespace Desgram.Api.Services
 
             if (unconfirmedEmail.ExpiredDate < DateTimeOffset.Now.UtcDateTime)
             {
-                throw new CustomException("code has expired");
+                throw new ConfirmCodeHasExpiredException();
             }
 
             var code = CodeGenerator.GetCode(6);
@@ -251,22 +234,6 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task<List<UserModel>> GetUsersAsync()
-        {
-            var users = await _context.Users
-                .ProjectTo<UserModel>(_mapper.ConfigurationProvider)
-                .ToListAsync();
-
-            foreach (var user in users)
-            {
-                if (user.Avatar != null)
-                {
-                    user.Avatar.Url = _urlService.GetUrlDisplayAttachById(user.Avatar.Id);
-                }
-            }
-            return users;
-        }
-
         public async Task<UserModel> GetUserByIdAsync(Guid userId)
         {
             var user = await _context.Users
@@ -275,15 +242,24 @@ namespace Desgram.Api.Services
                 .FirstOrDefaultAsync();
             if (user == null)
             {
-                throw new CustomException("user not found");
+                throw new UserNotFoundException();
             }
 
-            if (user.Avatar != null)
-            {
-                user.Avatar.Url = _urlService.GetUrlDisplayAttachById(user.Avatar.Id);
-            }
+            AfterMapUserModel(user);
           
             return user;
+        }
+
+        public async Task<List<PartialUserModel>> SearchUsersByNameAsync(SearchUsersByNameModel model, Guid userId)
+        {
+            var users = await _context.Users
+                .Where(u => u.Name.ToLower().Contains(model.SearchUserName.ToLower()))
+                .Skip(model.Skip).Take(model.Take)
+                .ProjectTo<PartialUserModel>(_mapper.ConfigurationProvider)
+                .ToListAsync();
+            AfterMapPartialUserModel(users);
+
+            return users;
         }
 
         public async Task AddAvatarAsync(MetadataModel model,Guid userId)
@@ -321,7 +297,7 @@ namespace Desgram.Api.Services
 
             if (user == null)
             {
-                throw new CustomException("user not found");
+                throw new UserNotFoundException();
             }
 
             return user;
@@ -335,7 +311,7 @@ namespace Desgram.Api.Services
 
             if (unconfirmedEmail == null)
             {
-                throw new CustomException("unconfirmedEmail not found");
+                throw new UnconfirmedEmailNotFoundException();
             }
             return unconfirmedEmail;
         }
@@ -347,10 +323,51 @@ namespace Desgram.Api.Services
 
             if (unconfirmedUser == null)
             {
-                throw new CustomException("unconfirmedUser not found");
+                throw new UnconfirmedUserNotFoundException();
             }
             return unconfirmedUser;
         }
+
+        private void AfterMapPartialUserModel(List<PartialUserModel> partialUserModels)
+        {
+            foreach (var partialUserModel in partialUserModels)
+            {
+                if (partialUserModel.Avatar != null)
+                {
+                    partialUserModel.Avatar.Url = _urlService.GetUrlDisplayAttachById(partialUserModel.Avatar.Id);
+                }
+            }
+        }
+
+        private void AfterMapUserModel(List<UserModel> userModels)
+        {
+            foreach (var userModel in userModels)
+            {
+                if (userModel.Avatar != null)
+                {
+                    userModel.Avatar.Url = _urlService.GetUrlDisplayAttachById(userModel.Avatar.Id);
+                }
+            }
+        }
+
+        private void AfterMapUserModel(UserModel userModel)
+        {
+            AfterMapUserModel(new List<UserModel>() { userModel });
+        }
+
+        private async Task<bool> IsEmailFree(string email)
+        {
+            return !(await _context.Users.AnyAsync(u => u.Email.ToLower() == email.ToLower()))
+                   && !(await _context.UnconfirmedUsers.AnyAsync(u => u.Email.ToLower() == email.ToLower()))
+                   && !(await _context.UnconfirmedEmails.AnyAsync(e => e.Email.ToLower() == email.ToLower()));
+        }
+
+        private async Task<bool> IsUserNameFree(string username)
+        {
+            return !(await _context.Users.AnyAsync(u => u.Name.ToLower() == username.ToLower()))
+                   && !(await _context.UnconfirmedUsers.AnyAsync(u => u.Name.ToLower() == username.ToLower()));
+        }
+
 
     }
 }

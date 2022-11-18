@@ -1,6 +1,7 @@
 ﻿using Desgram.DAL;
 using Desgram.DAL.Entities;
 using Desgram.SharedKernel.Exceptions;
+using Desgram.SharedKernel.Exceptions.NotFoundExceptions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Desgram.Api.Infrastructure.Extensions
@@ -13,7 +14,7 @@ namespace Desgram.Api.Infrastructure.Extensions
 
             if (user == null)
             {
-                throw new CustomException("user not found");
+                throw new UserNotFoundException();
             }
 
             return user;
@@ -25,7 +26,7 @@ namespace Desgram.Api.Infrastructure.Extensions
                 .FirstOrDefaultAsync(u => u.Name.ToLower() == name.ToLower());
             if (user == null)
             {
-                throw new CustomException("user not found");
+                throw new UserNotFoundException();
             }
             return user;
         }
@@ -36,16 +37,10 @@ namespace Desgram.Api.Infrastructure.Extensions
                 .FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
             if (user == null)
             {
-                throw new CustomException("user not found");
+                throw new UserNotFoundException();
             }
             return user;
         }
-
-        public static async Task<bool> IsUserExistByEmail(this IQueryable<User> users, string email) =>
-            await users.AnyAsync(u=>u.Email.ToLower() == email.ToLower());
-
-        public static async Task<bool> IsUserExistByName(this IQueryable<User> users, string name) =>
-            await users.AnyAsync(u => u.Name.ToLower() == name.ToLower());
 
     }
 }

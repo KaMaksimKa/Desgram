@@ -11,5 +11,6 @@ namespace Desgram.Api.Models.Comment
         public int AmountLikes { get; set; } = 0;
         public bool IsEdit { get; set; }
         public bool IsLiked { get; set; }
+        public bool IsAuthor { get; set; }
     }
 }

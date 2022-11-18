@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Desgram.Api.Controllers
 {
+    [ApiExplorerSettings(GroupName = "Api")]
     [Authorize]
     [ApiController]
     [Route("api/[controller]/[action]")]
@@ -22,16 +23,19 @@ namespace Desgram.Api.Controllers
             _userService = userService;
         }
 
+        [ApiExplorerSettings(GroupName = "Auth")]
         [AllowAnonymous]
         [HttpPost]
         public async Task<Guid> CreateUser(CreateUserModel createUserDto) => 
             await _userService.CreateUserAsync(createUserDto);
 
+        [ApiExplorerSettings(GroupName = "Auth")]
         [AllowAnonymous]
         [HttpPost]
         public async Task ConfirmUser(string code, Guid unconfirmedUserId) => 
             await _userService.ConfirmUserAsync(code, unconfirmedUserId);
 
+        [ApiExplorerSettings(GroupName = "Auth")]
         [AllowAnonymous]
         [HttpPost]
         public async Task SendSingUpCode(Guid unconfirmedUserId) => 
@@ -41,9 +45,10 @@ namespace Desgram.Api.Controllers
         public async Task<UserModel> GetCurrentUser() =>
             await _userService.GetUserByIdAsync(User.GetUserId());
 
-        [AllowAnonymous]
+        
         [HttpGet]
-        public async Task<List<UserModel>> GetUsers() => await _userService.GetUsersAsync();
+        public async Task<List<PartialUserModel>> SearchUsersByName([FromQuery]SearchUsersByNameModel model) => 
+            await _userService.SearchUsersByNameAsync(model,User.GetUserId());
 
         [HttpPost]
         public async Task AddAvatar(MetadataModel model) => 

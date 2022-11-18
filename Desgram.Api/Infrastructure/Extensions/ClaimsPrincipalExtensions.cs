@@ -1,5 +1,8 @@
 ﻿using Desgram.SharedKernel.Exceptions;
 using System.Security.Claims;
+using Desgram.DAL.Entities;
+using Desgram.SharedKernel.Exceptions.NotFoundExceptions;
+using Desgram.SharedKernel.Exceptions.UnauthorizedExceptions;
 
 namespace Desgram.Api.Infrastructure.Extensions
 {
@@ -10,7 +13,7 @@ namespace Desgram.Api.Infrastructure.Extensions
             var userIdString = principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
             if (!Guid.TryParse(userIdString, out var userGuid))
             {
-                throw new CustomException("you are not authorize");
+                throw new UnauthorizedException();
             }
 
             return userGuid;
@@ -21,7 +24,7 @@ namespace Desgram.Api.Infrastructure.Extensions
             var sessionIdString = principal.Claims.FirstOrDefault(c => c.Type == AppClaimTypes.SessionId)?.Value;
             if (!Guid.TryParse(sessionIdString, out var sessionGuid))
             {
-                throw new CustomException("session not found");
+                throw new SessionNotFoundException();
             }
 
             return sessionGuid;
@@ -33,7 +36,7 @@ namespace Desgram.Api.Infrastructure.Extensions
 
             if (!Guid.TryParse(guidString, out var guid))
             {
-                throw new CustomException("token is invalid");
+                throw new UnauthorizedException();
             }
 
             return guid;

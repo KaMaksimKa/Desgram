@@ -23,7 +23,7 @@ namespace Desgram.Api.Services
         {
             if (_accessor.ActionContext == null)
             {
-                throw new CustomException("_accessor.ActionContext in null");
+                throw new NullReferenceException(nameof(_accessor.ActionContext));
             }
             var urlHelper = _urlHelperFactory.GetUrlHelper(_accessor.ActionContext);
 
@@ -31,7 +31,7 @@ namespace Desgram.Api.Services
                 ControllerHelper.NameOfController<AttachController>(), new { id });
             if (url == null)
             {
-                throw new CustomException("couldn't get the url");
+                throw new NullReferenceException(nameof(url));
             }
             return url;
         }
@@ -40,7 +40,7 @@ namespace Desgram.Api.Services
         {
             if (_accessor.ActionContext == null)
             {
-                throw new CustomException("_accessor.ActionContext in null");
+                throw new NullReferenceException(nameof(_accessor.ActionContext));
             }
             var urlHelper = _urlHelperFactory.GetUrlHelper(_accessor.ActionContext);
 
@@ -48,7 +48,7 @@ namespace Desgram.Api.Services
                 ControllerHelper.NameOfController<AttachController>(), new { id });
             if (url == null)
             {
-                throw new CustomException("couldn't get the url");
+                throw new NullReferenceException(nameof(url));
             }
             return url;
         }

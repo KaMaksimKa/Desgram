@@ -7,7 +7,7 @@ namespace Desgram.Api.Models.User
 
         [Required]
         [RegularExpression(@"[A-Za-z0-9._]*")]
-        public string Name { get; init; } = null!;
+        public string UserName { get; init; } = null!;
 
         [Required]
         [EmailAddress]

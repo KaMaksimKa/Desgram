@@ -1,8 +1,7 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
-using Desgram.SharedKernel;
 
-namespace SharedKernel
+namespace Desgram.SharedKernel
 {
     public static class HashHelper
     {

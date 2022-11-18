@@ -1,5 +1,6 @@
 ﻿using Desgram.DAL.Entities;
 using Desgram.SharedKernel.Exceptions;
+using Desgram.SharedKernel.Exceptions.NotFoundExceptions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Desgram.Api.Infrastructure.Extensions
@@ -11,7 +12,7 @@ namespace Desgram.Api.Infrastructure.Extensions
             var comment = await comments.FirstOrDefaultAsync(c => c.Id == commentId && c.DeletedDate == null);
             if (comment == null)
             {
-                throw new CustomException("comment not found");
+                throw new CommentNotFoundException();
             }
 
             return comment;

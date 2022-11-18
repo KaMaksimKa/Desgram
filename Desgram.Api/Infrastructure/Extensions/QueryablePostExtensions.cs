@@ -1,5 +1,6 @@
 ﻿using Desgram.DAL.Entities;
 using Desgram.SharedKernel.Exceptions;
+using Desgram.SharedKernel.Exceptions.NotFoundExceptions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Desgram.Api.Infrastructure.Extensions
@@ -11,7 +12,7 @@ namespace Desgram.Api.Infrastructure.Extensions
             var post = await posts.FirstOrDefaultAsync(p => p.Id == id && p.DeletedDate == null);
             if (post == null)
             {
-                throw new CustomException("post not found");
+                throw new PostNotFoundException();
             }
 
             return post;

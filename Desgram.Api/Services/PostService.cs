@@ -5,7 +5,8 @@ using Desgram.Api.Models.Post;
 using Desgram.Api.Services.Interfaces;
 using Desgram.DAL;
 using Desgram.DAL.Entities;
-using Desgram.SharedKernel.Exceptions;
+using Desgram.SharedKernel.Exceptions.ForbiddenExceptions;
+using Desgram.SharedKernel.Exceptions.NotFoundExceptions;
 using Microsoft.EntityFrameworkCore;
 
 
@@ -68,7 +69,7 @@ namespace Desgram.Api.Services
 
             if (post.UserId != userId)
             {
-                throw new CustomException("you don't have enough rights");
+                throw new AuthorContentException();
             }
             
             post.DeletedDate = DateTimeOffset.Now.UtcDateTime;
@@ -82,7 +83,7 @@ namespace Desgram.Api.Services
 
             if (post.UserId != userId)
             {
-                throw new CustomException("you don't have enough right");
+                throw new AuthorContentException();
             }
 
             post.Description = model.Description;
@@ -97,7 +98,7 @@ namespace Desgram.Api.Services
 
             if (post.UserId != userId)
             {
-                throw new CustomException("you don't have enough right");
+                throw new AuthorContentException();
             }
 
             post.IsLikesVisible = model.IsLikesVisible;
@@ -112,7 +113,7 @@ namespace Desgram.Api.Services
 
             if (post.UserId != userId)
             {
-                throw new CustomException("you don't have enough right");
+                throw new AuthorContentException();
             }
 
             post.IsCommentsEnabled = model.IsCommentsEnabled;
@@ -128,7 +129,7 @@ namespace Desgram.Api.Services
                 .ProjectTo<PostModel>(_mapper.ConfigurationProvider)
                 .ToListAsync());
 
-            AfterMapPost(posts,userId);
+            await AfterMapPostAsync(posts,userId);
 
             return posts;
         }
@@ -142,7 +143,7 @@ namespace Desgram.Api.Services
                 .ProjectTo<PostModel>(_mapper.ConfigurationProvider)
                 .ToListAsync();
 
-            AfterMapPost(posts,userId);
+            await AfterMapPostAsync(posts,userId);
 
             return posts;
         }
@@ -159,7 +160,7 @@ namespace Desgram.Api.Services
                 .ProjectTo<PostModel>(_mapper.ConfigurationProvider)
                 .ToListAsync();
 
-            AfterMapPost(posts, userId);
+            await AfterMapPostAsync(posts, userId);
 
             return posts;
         }
@@ -172,7 +173,7 @@ namespace Desgram.Api.Services
                !(await _context.UserSubscriptions.AnyAsync(s =>s.DeletedDate == null && s.IsApproved
                && (s.ContentMakerId == contentMaker.Id && s.FollowerId == userId)) || contentMaker.Id == userId))
             {
-                throw new CustomException("you don't have enough rights");
+                throw new AccessActionException();
             }
 
             var publications =await _context.Users
@@ -183,39 +184,43 @@ namespace Desgram.Api.Services
                 .ProjectTo<PostModel>(_mapper.ConfigurationProvider)
                 .ToListAsync();
 
-            AfterMapPost(publications,userId);
+            await AfterMapPostAsync(publications,userId);
 
             return publications;
         }
 
-        private void AfterMapPost(List<PostModel> posts, Guid userId)
+        private async Task AfterMapPostAsync(List<PostModel> posts, Guid userId)
         {
-            SetUrlForAttachPost(posts);
-            SetIsLiked(posts, userId);
-        }
+            var postsInfo = await _context.Posts
+                .Where(p => posts.Select(pub => pub.Id).Contains(p.Id))
+                .Select(p => new {
+                    p.Id,
+                    IsLiked = p.Likes.Any(l => l.UserId == userId && l.DeletedDate == null)
+                }).ToListAsync();
 
-        private void SetIsLiked(List<PostModel> posts,Guid userId)
-        {
-            var postLikes = _context.Posts
-                .Where(p=>posts.Select(pub=>pub.Id).Contains(p.Id) 
-                          && p.Likes.Any(l=>l.UserId == userId && l.DeletedDate == null))
-                .Select(p => p.Id);
-
-            foreach (var postModel in posts.Where(p=>postLikes.Contains(p.Id)))
+            foreach (var postModel in posts)
             {
-                postModel.IsLiked = true;
-            }
-        }
+                var postInfo = postsInfo.FirstOrDefault(p => p.Id == postModel.Id);
+                if (postInfo == null)
+                {
+                    throw new PostNotFoundException();
+                }
 
-        private void SetUrlForAttachPost(List<PostModel> posts)
-        {
-            foreach (var post in posts)
-            {
-                foreach (var contentModel in post.AttachesPost)
+                postModel.IsLiked = postInfo.IsLiked;
+                postModel.IsAuthor = postModel.User.Id == userId;
+
+                foreach (var contentModel in postModel.AttachesPost)
                 {
                     contentModel.Url = _urlService.GetUrlDisplayAttachById(contentModel.Id);
                 }
+
+
+                if (postModel.User.Avatar != null)
+                {
+                    postModel.User.Avatar.Url = _urlService.GetUrlDisplayAttachById(postModel.User.Avatar.Id);
+                }
             }
+
         }
 
         private async Task<List<HashTag>> GetHashTags(List<string> hashTagsString)

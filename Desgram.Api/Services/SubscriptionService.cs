@@ -7,6 +7,8 @@ using Desgram.Api.Services.ServiceModel.Subscription;
 using Desgram.DAL;
 using Desgram.DAL.Entities;
 using Desgram.SharedKernel.Exceptions;
+using Desgram.SharedKernel.Exceptions.BadRequestExceptions;
+using Desgram.SharedKernel.Exceptions.NotFoundExceptions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Desgram.Api.Services
@@ -30,7 +32,7 @@ namespace Desgram.Api.Services
 
             if (await CheckSubscriptionAsync(model))
             {
-                throw new CustomException("you've already subscribe");
+                throw new SubscriptionAlreadyExistsException();
             }
 
 
@@ -121,7 +123,7 @@ namespace Desgram.Api.Services
 
             if (subscription == null)
             {
-                throw new CustomException("subscription not found");
+                throw new SubscriptionNotFoundException();
             }
 
             return subscription;

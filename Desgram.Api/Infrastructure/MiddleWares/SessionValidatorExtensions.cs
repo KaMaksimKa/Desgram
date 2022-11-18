@@ -1,4 +1,4 @@
-﻿namespace Desgram.Api.Infrastructure.MiddleWares
+﻿namespace Desgram.Api.Infrastructure.Middlewares
 {
     public static class SessionValidatorExtensions
     {

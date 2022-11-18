@@ -5,7 +5,8 @@ using Desgram.Api.Models.Comment;
 using Desgram.Api.Services.Interfaces;
 using Desgram.DAL;
 using Desgram.DAL.Entities;
-using Desgram.SharedKernel.Exceptions;
+using Desgram.SharedKernel.Exceptions.ForbiddenExceptions;
+using Desgram.SharedKernel.Exceptions.NotFoundExceptions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Desgram.Api.Services
@@ -28,7 +29,7 @@ namespace Desgram.Api.Services
 
             if (!post.IsCommentsEnabled)
             {
-                throw new CustomException("comments under this post are disabled");
+                throw new AccessActionException();
             }
 
             var comment = new Comment()
@@ -53,7 +54,7 @@ namespace Desgram.Api.Services
 
             if (comment.UserId != userId && post.UserId != userId)
             {
-                throw new CustomException("you don't have enough rights");
+                throw new AuthorContentException();
             }
 
             comment.DeletedDate = DateTimeOffset.Now.UtcDateTime;
@@ -67,7 +68,7 @@ namespace Desgram.Api.Services
                 .Where(c => c.PostId == postId && c.DeletedDate == null)
                 .ProjectTo<CommentModel>(_mapper.ConfigurationProvider).ToListAsync();
 
-            AfterMapComment(comments, userId);
+            await AfterMapComment(comments, userId);
 
             return comments;
         }
@@ -78,7 +79,7 @@ namespace Desgram.Api.Services
 
             if (comment.UserId != userId)
             {
-                throw new CustomException("you don't have enough right");
+                throw new AuthorContentException();
             }
 
             comment.Content = model.Content;
@@ -86,22 +87,27 @@ namespace Desgram.Api.Services
 
             await _context.SaveChangesAsync();
         }
-        private void AfterMapComment(List<CommentModel> comment, Guid userId)
+        private async Task AfterMapComment(List<CommentModel> comments, Guid userId)
         {
-            SetIsLikedComment(comment, userId);
-        }
+            var commentsInfo = await _context.Comments
+                .Where(c => comments.Select(com => com.Id).Contains(c.Id))
+                .Select(c => new {
+                    c.Id,
+                    IsLiked = c.Likes.Any(l => l.UserId == userId && l.DeletedDate == null)
+                }).ToListAsync();
 
-        private void SetIsLikedComment(List<CommentModel> comments, Guid userId)
-        {
-            var commentsLikes = _context.Comments
-                .Where(c => comments.Select(com => com.Id).Contains(c.Id)
-                            && c.Likes.Any(l => l.UserId == userId && l.DeletedDate == null))
-                .Select(p => p.Id);
-            
-            foreach (var commentModel in comments.Where(p => commentsLikes.Contains(p.Id)))
+            foreach (var commentModel in comments)
             {
-                commentModel.IsLiked = true;
+                var commentInfo = commentsInfo.FirstOrDefault(c => c.Id == commentModel.Id);
+                if (commentInfo == null)
+                {
+                    throw new CommentNotFoundException();
+                }
+                commentModel.IsLiked = commentInfo.IsLiked;
+                commentModel.IsAuthor = commentModel.User.Id == userId;
             }
         }
+
+      
     }
 }

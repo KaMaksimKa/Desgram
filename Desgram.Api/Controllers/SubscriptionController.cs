@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Desgram.Api.Controllers
 {
+    [ApiExplorerSettings(GroupName = "Api")]
     [Authorize]
     [Route("api/[controller]/[action]")]
     [ApiController]

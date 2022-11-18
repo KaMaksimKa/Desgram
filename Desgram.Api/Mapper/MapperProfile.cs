@@ -5,7 +5,7 @@ using Desgram.Api.Models.Comment;
 using Desgram.Api.Models.Post;
 using Desgram.Api.Models.User;
 using Desgram.DAL.Entities;
-using SharedKernel;
+using Desgram.SharedKernel;
 
 namespace Desgram.Api.Mapper
 {
@@ -16,7 +16,9 @@ namespace Desgram.Api.Mapper
             CreateMap<CreateUserModel, User>()
                 .ForMember(d => d.Id, m => m.MapFrom(s => Guid.NewGuid()))
                 .ForMember(d => d.PasswordHash, m => m.MapFrom(s => HashHelper.GetHash(s.Password)))
-                .ForMember(d => d.CreatedDate, m => m.MapFrom(s => DateTimeOffset.Now.UtcDateTime));
+                .ForMember(d => d.CreatedDate, m => m.MapFrom(s => DateTimeOffset.Now.UtcDateTime))
+                .ForMember(d=>d.Name,m=>m.MapFrom(s=>s.UserName));
+            
 
             CreateMap<User, UserModel>()
                 .ForMember(d => d.Avatar, m => m.MapFrom(

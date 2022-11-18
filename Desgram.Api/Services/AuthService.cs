@@ -5,13 +5,16 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Desgram.DAL;
 using Desgram.DAL.Entities;
-using Desgram.SharedKernel.Exceptions;
-using SharedKernel;
 using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
 using Desgram.Api.Infrastructure;
 using Desgram.Api.Models.Token;
 using Desgram.Api.Infrastructure.Extensions;
+using Desgram.SharedKernel;
+using Desgram.SharedKernel.Exceptions.BadRequestExceptions;
+using Desgram.SharedKernel.Exceptions.NotFoundExceptions;
+using Desgram.SharedKernel.Exceptions.UnauthorizedExceptions;
+
 
 namespace Desgram.Api.Services
 {
@@ -36,7 +39,7 @@ namespace Desgram.Api.Services
 
             if (!HashHelper.Verify(password, user.PasswordHash))
             {
-                throw new CustomException("password is not correct");
+                throw new InvalidPasswordException();
             }
 
             var session = (await _context.UserSessions.AddAsync(new UserSession()
@@ -58,11 +61,6 @@ namespace Desgram.Api.Services
             };
         }
 
-        private bool IsEmail(string str)
-        {
-            return str.Contains("@");
-        }
-
         public async Task<TokenModel> GetTokenByRefreshTokenAsync(string refreshToken)
         {
             var validationParam = new TokenValidationParameters
@@ -80,7 +78,7 @@ namespace Desgram.Api.Services
             if (securityToken is not JwtSecurityToken jwToken ||
                 !jwToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
             {
-                throw new CustomException("token is invalid");
+                throw new UnauthorizedException();
             }
 
             var refreshTokenId = principal.GetRefreshTokenId();
@@ -88,7 +86,7 @@ namespace Desgram.Api.Services
             var session = await GetSessionByRefreshIdAsync(refreshTokenId);
             if (!session.IsActive)
             {
-                throw new CustomException("session is not active");
+                throw new UnauthorizedException();
             }
 
             session.RefreshTokenId = Guid.NewGuid();
@@ -103,11 +101,7 @@ namespace Desgram.Api.Services
 
         public async Task LogoutBySessionIdAsync(Guid sessionId)
         {
-            var session = await _context.UserSessions.FirstOrDefaultAsync(s => s.Id == sessionId && s.IsActive);
-            if (session == null)
-            {
-                throw new CustomException("session not found");
-            }
+            var session = await GetSessionById(sessionId);
 
             session.IsActive = false;
             await _context.SaveChangesAsync();
@@ -132,10 +126,6 @@ namespace Desgram.Api.Services
 
         private string GetAccessToken(UserSession session)
         {
-            if (session.User == null)
-            {
-                throw new CustomException("forgot include");
-            }
 
             var access = new JwtSecurityToken(
                 issuer: _authConfig.Issuer,
@@ -143,7 +133,7 @@ namespace Desgram.Api.Services
                 notBefore: DateTime.Now,
                 claims: new List<Claim>()
                 {
-                    new Claim(ClaimTypes.NameIdentifier, session.User.Id.ToString()),
+                    new Claim(ClaimTypes.NameIdentifier, session.UserId.ToString()),
                     new Claim(AppClaimTypes.SessionId, session.Id.ToString())
                 },
                 expires: DateTime.Now.AddMinutes(_authConfig.LifeTime),
@@ -182,21 +172,26 @@ namespace Desgram.Api.Services
 
             if (session == null)
             {
-                throw new CustomException("session not found");
+                throw new SessionNotFoundException();
             }
 
             return session;
         }
 
-        /*private async Task<UserSession> GetSessionByIdAsync(Guid sessionId)
+        private async Task<UserSession> GetSessionById(Guid sessionId)
         {
             var session = await _context.UserSessions.FirstOrDefaultAsync(s => s.Id == sessionId && s.IsActive);
             if (session == null)
             {
-                throw new CustomException("session not found");
+                throw new SessionNotFoundException();
             }
 
             return session;
-        }*/
+        }
+
+        private bool IsEmail(string str)
+        {
+            return str.Contains("@");
+        }
     }
 }

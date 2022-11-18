@@ -15,5 +15,6 @@ namespace Desgram.Api.Models.Post
         public List<AttachWithUrlModel> AttachesPost { get; set; } = null!;
         public List<string> HashTags { get; set; } = null!;
         public bool IsLiked { get; set; }
+        public bool IsAuthor { get; set; }
     }
 }

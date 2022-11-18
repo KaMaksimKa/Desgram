@@ -1,8 +1,8 @@
-﻿using Desgram.Api.Services;
-using Desgram.DAL;
+﻿using Desgram.DAL;
+using Desgram.SharedKernel.Exceptions.UnauthorizedExceptions;
 using Microsoft.EntityFrameworkCore;
 
-namespace Desgram.Api.Infrastructure.MiddleWares
+namespace Desgram.Api.Infrastructure.Middlewares
 {
     public class SessionValidator
     {
@@ -24,8 +24,7 @@ namespace Desgram.Api.Infrastructure.MiddleWares
             }
             else
             {
-                context.Response.Clear();
-                context.Response.StatusCode = 401;
+                throw new UnauthorizedException();
             }
 
         }
