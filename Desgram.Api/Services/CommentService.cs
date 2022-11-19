@@ -22,9 +22,9 @@ namespace Desgram.Api.Services
             _mapper = mapper;
         }
 
-        public async Task AddCommentAsync(CreateCommentModel model, Guid userId)
+        public async Task AddCommentAsync(CreateCommentModel model, Guid requestorId)
         {
-            var user = await _context.Users.GetUserByIdAsync(userId);
+            var user = await _context.Users.GetUserByIdAsync(requestorId);
             var post = await _context.Posts.GetPostById(model.PostId);
 
             if (!post.IsCommentsEnabled)
@@ -47,12 +47,12 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task DeleteCommentAsync(Guid commentId, Guid userId)
+        public async Task DeleteCommentAsync(Guid commentId, Guid requestorId)
         {
             var comment = await _context.Comments.GetCommentById(commentId);
             var post = await _context.Posts.GetPostById(comment.PostId);
 
-            if (comment.UserId != userId && post.UserId != userId)
+            if (comment.UserId != requestorId && post.UserId != requestorId)
             {
                 throw new AuthorContentException();
             }
@@ -62,22 +62,23 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task<List<CommentModel>> GetCommentsAsync(Guid postId, Guid userId)
+        public async Task<List<CommentModel>> GetCommentsAsync(CommentRequestModel model, Guid requestorId)
         {
             var comments = await _context.Comments
-                .Where(c => c.PostId == postId && c.DeletedDate == null)
+                .Where(c => c.PostId == model.PostId && c.DeletedDate == null)
+                .Skip(model.Skip).Take(model.Take)
                 .ProjectTo<CommentModel>(_mapper.ConfigurationProvider).ToListAsync();
 
-            await AfterMapComment(comments, userId);
+            await AfterMapComment(comments, requestorId);
 
             return comments;
         }
 
-        public async Task UpdateCommentAsync(UpdateCommentModel model, Guid userId)
+        public async Task UpdateCommentAsync(UpdateCommentModel model, Guid requestorId)
         {
             var comment = await _context.Comments.GetCommentById(model.CommentId);
 
-            if (comment.UserId != userId)
+            if (comment.UserId != requestorId)
             {
                 throw new AuthorContentException();
             }

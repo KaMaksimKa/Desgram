@@ -10,6 +10,7 @@ using Desgram.DAL.Entities;
 using Desgram.SharedKernel;
 using Desgram.SharedKernel.Exceptions;
 using Desgram.SharedKernel.Exceptions.BadRequestExceptions;
+using Desgram.SharedKernel.Exceptions.ForbiddenExceptions;
 using Desgram.SharedKernel.Exceptions.NotFoundExceptions;
 using Microsoft.EntityFrameworkCore;
 
@@ -65,16 +66,16 @@ namespace Desgram.Api.Services
             return unconfirmedUser.Id;
         }
 
-        public async Task ConfirmUserAsync(string code, Guid unconfirmedUserId)
+        public async Task ConfirmUserAsync(ConfirmUserModel model)
         {
-            var unconfirmedUser = await GetUnconfirmedUserById(unconfirmedUserId);
+            var unconfirmedUser = await GetUnconfirmedUserById(model.UnconfirmedUserId);
 
             if (DateTimeOffset.Now.UtcDateTime > unconfirmedUser.ExpiredDate)
             {
                 throw new ConfirmCodeHasExpiredException();
             }
 
-            if (!HashHelper.Verify(code, unconfirmedUser.CodeHash))
+            if (!HashHelper.Verify(model.ConfirmCode, unconfirmedUser.CodeHash))
             {
                 throw new InvalidConfirmCodeException();
             }
@@ -114,9 +115,9 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task UpdateProfileAsync(ProfileModel model, Guid userId)
+        public async Task UpdateProfileAsync(ProfileModel model, Guid requestorId)
         {
-            var user = await _context.Users.GetUserByIdAsync(userId);
+            var user = await _context.Users.GetUserByIdAsync(requestorId);
 
             user.BirthDate = model.BirthDate;
             user.Biography = model.Biography;
@@ -125,9 +126,9 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task ChangePasswordAsync(ChangePasswordModel model, Guid userId)
+        public async Task ChangePasswordAsync(ChangePasswordModel model, Guid requestorId)
         {
-            var user = await _context.Users.GetUserByIdAsync(userId);
+            var user = await _context.Users.GetUserByIdAsync(requestorId);
 
             if (!HashHelper.Verify(model.OldPassword, user.PasswordHash))
             {
@@ -140,9 +141,9 @@ namespace Desgram.Api.Services
 
         }
 
-        public async Task ChangeUserNameAsync(ChangeUserNameModel model, Guid userId)
+        public async Task ChangeUserNameAsync(ChangeUserNameModel model, Guid requestorId)
         {
-            var user = await _context.Users.GetUserByIdAsync(userId);
+            var user = await _context.Users.GetUserByIdAsync(requestorId);
 
             if (!(await IsUserNameFree(model.NewName)))
             {
@@ -154,9 +155,9 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task<Guid> ChangeEmailAsync(ChangeEmailModel model, Guid userId)
+        public async Task<Guid> ChangeEmailAsync(ChangeEmailModel model, Guid requestorId)
         {
-            var user = await _context.Users.GetUserByIdAsync(userId);
+            var user = await _context.Users.GetUserByIdAsync(requestorId);
 
             if (!(await IsEmailFree(model.NewEmail)))
             {
@@ -178,23 +179,23 @@ namespace Desgram.Api.Services
             await _context.UnconfirmedEmails.AddAsync(unconfirmedEmail);
             await _context.SaveChangesAsync();
 
-            await SendChangeEmailCodeAsync(unconfirmedEmail.Id, userId);
+            await SendChangeEmailCodeAsync(unconfirmedEmail.Id, requestorId);
 
             return unconfirmedEmail.Id;
         }
 
-        public async Task ConfirmEmailAsync(string code, Guid unconfirmedEmailId, Guid userId)
+        public async Task ConfirmEmailAsync(ConfirmEmailModel model, Guid userId)
         {
             var user = await _context.Users.GetUserByIdAsync(userId);
 
-            var unconfirmedEmail = await GetUnconfirmedEmailById(unconfirmedEmailId, userId);
+            var unconfirmedEmail = await GetUnconfirmedEmailById(model.UnconfirmedEmailId, userId);
 
             if (DateTimeOffset.Now.UtcDateTime > unconfirmedEmail.ExpiredDate)
             {
                 throw new ConfirmCodeHasExpiredException();
             }
 
-            if (!HashHelper.Verify(code, unconfirmedEmail.CodeHash))
+            if (!HashHelper.Verify(model.ConfirmCode, unconfirmedEmail.CodeHash))
             {
                 throw new InvalidConfirmCodeException();
             }
@@ -207,9 +208,9 @@ namespace Desgram.Api.Services
 
         }
 
-        public async Task SendChangeEmailCodeAsync(Guid unconfirmedEmailId, Guid userId)
+        public async Task SendChangeEmailCodeAsync(Guid unconfirmedEmailId, Guid requestorId)
         {
-            var unconfirmedEmail = await GetUnconfirmedEmailById(unconfirmedEmailId, userId);
+            var unconfirmedEmail = await GetUnconfirmedEmailById(unconfirmedEmailId, requestorId);
 
             if (unconfirmedEmail.ExpiredDate < DateTimeOffset.Now.UtcDateTime)
             {
@@ -225,24 +226,32 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task ChangeAccountAvailabilityAsync(bool isPrivate, Guid userId)
+        public async Task ChangeAccountAvailabilityAsync(bool isPrivate, Guid requestorId)
         {
-            var user = await _context.Users.GetUserByIdAsync(userId);
+            var user = await _context.Users.GetUserByIdAsync(requestorId);
             
             user.IsPrivate = isPrivate;
 
             await _context.SaveChangesAsync();
         }
 
-        public async Task<UserModel> GetUserByIdAsync(Guid userId)
+        public async Task<UserModel> GetUserByIdAsync(Guid userId,Guid requestorId)
         {
+
             var user = await _context.Users
-                .Where(u=>u.Id == userId)
+                .Where(u => u.Id == userId)
                 .ProjectTo<UserModel>(_mapper.ConfigurationProvider)
                 .FirstOrDefaultAsync();
+            
             if (user == null)
             {
                 throw new UserNotFoundException();
+            }
+
+            if (await _context.BlockingUsers.AnyAsync(b => b.BlockedId == requestorId
+                                                           && b.UserId == userId))
+            {
+                throw new AccessActionException();
             }
 
             AfterMapUserModel(user);
@@ -250,10 +259,11 @@ namespace Desgram.Api.Services
             return user;
         }
 
-        public async Task<List<PartialUserModel>> SearchUsersByNameAsync(SearchUsersByNameModel model, Guid userId)
+        public async Task<List<PartialUserModel>> SearchUsersByNameAsync(SearchUsersByNameModel model, Guid requestorId)
         {
             var users = await _context.Users
-                .Where(u => u.Name.ToLower().Contains(model.SearchUserName.ToLower()))
+                .Where(u => u.Name.ToLower().Contains(model.SearchUserName.ToLower())
+                            && !u.BlockedUsers.Any(ub => ub.BlockedId == requestorId && ub.DeletedDate == null))
                 .Skip(model.Skip).Take(model.Take)
                 .ProjectTo<PartialUserModel>(_mapper.ConfigurationProvider)
                 .ToListAsync();
@@ -262,11 +272,11 @@ namespace Desgram.Api.Services
             return users;
         }
 
-        public async Task AddAvatarAsync(MetadataModel model,Guid userId)
+        public async Task AddAvatarAsync(MetadataModel model,Guid requestorId)
         {
             var pathAttach = _attachService.MoveFromTempToAttach(model);
 
-            var user = await GetUserWithAvatarsByIdAsync(userId);
+            var user = await GetUserWithAvatarsByIdAsync(requestorId);
 
             var avatar = new Avatar()
             {

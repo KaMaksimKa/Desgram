@@ -21,6 +21,7 @@ namespace Desgram.DAL
         public DbSet<BlockingUser> BlockingUsers { get; init; } = null!;
         public DbSet<UnconfirmedUser> UnconfirmedUsers { get; init; } = null!;
         public DbSet<UnconfirmedEmail> UnconfirmedEmails { get; init; } = null!;
+        public DbSet<ApplicationRole> ApplicationRoles { get; init; } = null!;
 
         public ApplicationContext(DbContextOptions<ApplicationContext> options) :base(options) 
         {

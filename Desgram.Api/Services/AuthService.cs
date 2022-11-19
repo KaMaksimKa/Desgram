@@ -21,12 +21,15 @@ namespace Desgram.Api.Services
     public class AuthService : IAuthService
     {
         private readonly ApplicationContext _context;
+        private readonly IRoleService _roleService;
 
         private readonly AuthConfig _authConfig;
 
-        public AuthService(ApplicationContext context, IOptions<AuthConfig> options)
+        public AuthService(ApplicationContext context, IOptions<AuthConfig> options,
+            IRoleService roleService)
         {
             _context = context;
+            _roleService = roleService;
             _authConfig = options.Value;
         }
 
@@ -55,7 +58,7 @@ namespace Desgram.Api.Services
 
             return new TokenModel
             {
-                AccessToken = GetAccessToken(session),
+                AccessToken = await GetAccessTokenAsync(session),
                 RefreshToken = GetRefreshToken(session)
 
             };
@@ -94,7 +97,7 @@ namespace Desgram.Api.Services
 
             return new TokenModel
             {
-                AccessToken = GetAccessToken(session),
+                AccessToken =await GetAccessTokenAsync(session),
                 RefreshToken = GetRefreshToken(session)
             };
         }
@@ -109,8 +112,7 @@ namespace Desgram.Api.Services
 
         public async Task LogoutAllDeviceByUserIdAsync(Guid userId)
         {
-            var user = await _context.Users.GetUserByIdAsync(userId);
-            
+       
             var sessions = await _context.UserSessions
                 .Where(s => s.UserId == userId && s.IsActive)
                 .ToListAsync();
@@ -124,18 +126,24 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        private string GetAccessToken(UserSession session)
+        private async Task<string> GetAccessTokenAsync(UserSession session)
         {
+            
+
+            var claims = new List<Claim>()
+            {
+                new Claim(ClaimTypes.NameIdentifier, session.UserId.ToString()),
+                new Claim(AppClaimTypes.SessionId, session.Id.ToString()),
+            };
+
+            var roles = await _roleService.GetUserRoles(session.UserId);
+            claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role.Name)));
 
             var access = new JwtSecurityToken(
                 issuer: _authConfig.Issuer,
                 audience: _authConfig.Audience,
                 notBefore: DateTime.Now,
-                claims: new List<Claim>()
-                {
-                    new Claim(ClaimTypes.NameIdentifier, session.UserId.ToString()),
-                    new Claim(AppClaimTypes.SessionId, session.Id.ToString())
-                },
+                claims:claims,
                 expires: DateTime.Now.AddMinutes(_authConfig.LifeTime),
                 signingCredentials: new SigningCredentials(_authConfig.SymmetricSecurityKey,
                     SecurityAlgorithms.HmacSha256)

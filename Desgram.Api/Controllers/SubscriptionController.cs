@@ -74,14 +74,14 @@ namespace Desgram.Api.Controllers
         public Task<List<PartialUserModel>> GetFollowing()
         {
             var userId = User.GetUserId();
-            return _subscriptionService.GetFollowingAsync(userId);
+            return _subscriptionService.GetUserFollowingAsync(userId,userId);
         }
 
         [HttpGet]
         public Task<List<PartialUserModel>> GetFollowers()
         {
             var userId = User.GetUserId();
-            return _subscriptionService.GetFollowersAsync(userId);
+            return _subscriptionService.GetUserFollowersAsync(userId,userId);
         }
 
         [HttpGet]

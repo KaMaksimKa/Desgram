@@ -5,6 +5,8 @@ using Desgram.DAL;
 using Microsoft.EntityFrameworkCore;
 using Desgram.Api.Models.Attach;
 using Desgram.SharedKernel.Exceptions.NotFoundExceptions;
+using SkiaSharp;
+
 
 namespace Desgram.Api.Services
 {
@@ -39,12 +41,12 @@ namespace Desgram.Api.Services
                 fileInfo.Directory.Create();
             }
 
-            
 
-            using (var fileStream = new FileStream(path,FileMode.Create))
-            {
-                await file.CopyToAsync(fileStream);
-            }
+            await using var fileStream = new FileStream(path, FileMode.Create);
+
+            await file.CopyToAsync(fileStream);
+
+            EditImage(fileStream);
 
             return metadata;
         }
@@ -96,6 +98,20 @@ namespace Desgram.Api.Services
         private string GetAttachPathById(Guid id)
         {
             return Path.Combine(Directory.GetCurrentDirectory(), _defaultPathImage, id.ToString());
+        }
+
+        private void EditImage(Stream stream)
+        {
+            stream.Seek(0, SeekOrigin.Begin);
+            var original = SKBitmap.Decode(stream);
+
+            var h = original.Height;
+            var w = original.Width;
+
+            var resized = original.Resize(new SKImageInfo(original.Width, original.Height),SKFilterQuality.High);
+            var image = SKImage.FromBitmap(resized);
+
+            
         }
     }
 }

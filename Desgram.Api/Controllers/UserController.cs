@@ -2,9 +2,7 @@
 using Desgram.Api.Infrastructure.Extensions;
 using Desgram.Api.Models.Attach;
 using Desgram.Api.Models.User;
-using Desgram.Api.Services;
 using Desgram.Api.Services.Interfaces;
-using Desgram.DAL.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -32,8 +30,8 @@ namespace Desgram.Api.Controllers
         [ApiExplorerSettings(GroupName = "Auth")]
         [AllowAnonymous]
         [HttpPost]
-        public async Task ConfirmUser(string code, Guid unconfirmedUserId) => 
-            await _userService.ConfirmUserAsync(code, unconfirmedUserId);
+        public async Task ConfirmUser(ConfirmUserModel model) => 
+            await _userService.ConfirmUserAsync(model);
 
         [ApiExplorerSettings(GroupName = "Auth")]
         [AllowAnonymous]
@@ -43,9 +41,13 @@ namespace Desgram.Api.Controllers
 
         [HttpGet]
         public async Task<UserModel> GetCurrentUser() =>
-            await _userService.GetUserByIdAsync(User.GetUserId());
+            await _userService.GetUserByIdAsync(User.GetUserId(), User.GetUserId());
 
-        
+        [HttpGet]
+        public async Task<UserModel> GetUserById(Guid userId) =>
+            await _userService.GetUserByIdAsync(userId, User.GetUserId());
+
+
         [HttpGet]
         public async Task<List<PartialUserModel>> SearchUsersByName([FromQuery]SearchUsersByNameModel model) => 
             await _userService.SearchUsersByNameAsync(model,User.GetUserId());
@@ -75,8 +77,8 @@ namespace Desgram.Api.Controllers
             await _userService.ChangeEmailAsync(model, User.GetUserId());
 
         [HttpPost]
-        public async Task ConfirmEmail(Guid unconfirmedEmailId,string code) =>
-            await _userService.ConfirmEmailAsync(code,unconfirmedEmailId, User.GetUserId());
+        public async Task ConfirmEmail(ConfirmEmailModel model) =>
+            await _userService.ConfirmEmailAsync(model, User.GetUserId());
 
         [HttpPost]
         public async Task SendChangeEmailCode(Guid unconfirmedEmailId) =>

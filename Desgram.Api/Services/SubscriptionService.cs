@@ -3,11 +3,10 @@ using AutoMapper.QueryableExtensions;
 using Desgram.Api.Infrastructure.Extensions;
 using Desgram.Api.Models.User;
 using Desgram.Api.Services.Interfaces;
-using Desgram.Api.Services.ServiceModel.Subscription;
 using Desgram.DAL;
 using Desgram.DAL.Entities;
-using Desgram.SharedKernel.Exceptions;
 using Desgram.SharedKernel.Exceptions.BadRequestExceptions;
+using Desgram.SharedKernel.Exceptions.ForbiddenExceptions;
 using Desgram.SharedKernel.Exceptions.NotFoundExceptions;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,13 +23,13 @@ namespace Desgram.Api.Services
             _mapper = mapper;
         }
 
-        public async Task SubscribeAsync(SubscriptionModel model)
+        public async Task SubscribeAsync(Guid contentMakerId, Guid requestorId)
         {
-            var follower = await _context.Users.GetUserByIdAsync(model.FollowerId);
-            var contentMaker = await _context.Users.GetUserByIdAsync(model.ContentMakerId);
+            var follower = await _context.Users.GetUserByIdAsync(requestorId);
+            var contentMaker = await _context.Users.GetUserByIdAsync(contentMakerId);
 
 
-            if (await CheckSubscriptionAsync(model))
+            if (await CheckSubscriptionAsync(requestorId,contentMakerId))
             {
                 throw new SubscriptionAlreadyExistsException();
             }
@@ -51,59 +50,32 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task UnsubscribeAsync(SubscriptionModel model)
+        public async Task UnsubscribeAsync(Guid contentMakerId, Guid requestorId)
         {
-            var subscription = await GetSubscriptionAsync(model);
+            var subscription = await GetSubscriptionAsync(requestorId,contentMakerId);
             subscription.DeletedDate = DateTimeOffset.Now.UtcDateTime;
             await _context.SaveChangesAsync();
         }
 
-        public async Task DeleteFollowerAsync(SubscriptionModel model)
+        public async Task DeleteFollowerAsync(Guid followerId, Guid requestorId)
         {
-            var subscription = await GetSubscriptionAsync(model);
+            var subscription = await GetSubscriptionAsync(followerId,requestorId);
             subscription.DeletedDate = DateTimeOffset.Now.UtcDateTime;
             await _context.SaveChangesAsync();
         }
 
-        public async Task AcceptSubscriptionAsync(SubscriptionModel model)
+        public async Task AcceptSubscriptionAsync(Guid followerId, Guid requestorId)
         {
-            var subscription = await GetSubscriptionAsync(model);
+            var subscription = await GetSubscriptionAsync(followerId,requestorId);
 
             subscription.IsApproved = true;
 
             await _context.SaveChangesAsync();
         }
 
-        public async Task<List<PartialUserModel>> GetFollowingAsync(Guid userId)
+        public async Task<List<PartialUserModel>> GetSubRequestsAsync(Guid requestorId)
         {
-            var user = await _context.Users.GetUserByIdAsync(userId);
-
-            var following =await _context.UserSubscriptions
-                .Where(s => s.FollowerId == user.Id && s.DeletedDate == null && s.IsApproved)
-                .Select(s=>s.ContentMaker)
-                .ProjectTo<PartialUserModel>(_mapper.ConfigurationProvider)
-                .ToListAsync();
-
-            return following;
-        }
-
-        public async Task<List<PartialUserModel>> GetFollowersAsync(Guid userId)
-        {
-            var user = await _context.Users.GetUserByIdAsync(userId);
-            
-            var followers =await _context.UserSubscriptions
-                .Where(s => s.ContentMakerId == user.Id && s.DeletedDate == null && s.IsApproved)
-                .Select(s=>s.Follower)
-                .ProjectTo<PartialUserModel>(_mapper.ConfigurationProvider)
-                .ToListAsync();
-
-            return followers;
-
-        }
-
-        public async Task<List<PartialUserModel>> GetSubRequestsAsync(Guid userId)
-        {
-            var user = await _context.Users.GetUserByIdAsync(userId);
+            var user = await _context.Users.GetUserByIdAsync(requestorId);
 
             var partialUserModels = await _context.UserSubscriptions
                 .Where(s => s.ContentMakerId == user.Id && s.DeletedDate == null && s.IsApproved == false)
@@ -114,11 +86,47 @@ namespace Desgram.Api.Services
             return partialUserModels;
         }
 
-        private async Task<UserSubscription> GetSubscriptionAsync(SubscriptionModel model)
+        public async Task<List<PartialUserModel>> GetUserFollowingAsync(Guid userId, Guid requestorId)
+        {
+            var user = await _context.Users.GetUserByIdAsync(userId);
+
+            if (user.IsPrivate && userId != requestorId)
+            {
+                throw new AccessActionException();
+            }
+
+            var followers = await _context.UserSubscriptions
+                .Where(s => s.ContentMakerId == user.Id && s.DeletedDate == null && s.IsApproved)
+                .Select(s => s.Follower)
+                .ProjectTo<PartialUserModel>(_mapper.ConfigurationProvider)
+                .ToListAsync();
+
+            return followers;
+        }
+
+        public async Task<List<PartialUserModel>> GetUserFollowersAsync(Guid userId, Guid requestorId)
+        {
+            var user = await _context.Users.GetUserByIdAsync(userId);
+
+            if (user.IsPrivate && userId != requestorId)
+            {
+                throw new AccessActionException();
+            }
+
+            var following = await _context.UserSubscriptions
+                .Where(s => s.FollowerId == user.Id && s.DeletedDate == null && s.IsApproved)
+                .Select(s => s.ContentMaker)
+                .ProjectTo<PartialUserModel>(_mapper.ConfigurationProvider)
+                .ToListAsync();
+
+            return following;
+        }
+
+        private async Task<UserSubscription> GetSubscriptionAsync(Guid followerId, Guid contentMakerId)
         {
             var subscription = await _context.UserSubscriptions
-                .FirstOrDefaultAsync(s => s.FollowerId == model.FollowerId
-                                          && s.ContentMakerId == model.ContentMakerId 
+                .FirstOrDefaultAsync(s => s.FollowerId == followerId
+                                          && s.ContentMakerId == contentMakerId
                                           && s.DeletedDate == null);
 
             if (subscription == null)
@@ -129,11 +137,11 @@ namespace Desgram.Api.Services
             return subscription;
         }
 
-        private async Task<bool> CheckSubscriptionAsync(SubscriptionModel model)
+        private async Task<bool> CheckSubscriptionAsync(Guid followerId, Guid contentMakerId)
         {
             return await _context.UserSubscriptions
-                .AnyAsync(s => s.FollowerId == model.FollowerId
-                                          && s.ContentMakerId == model.ContentMakerId
+                .AnyAsync(s => s.FollowerId == followerId
+                                          && s.ContentMakerId == contentMakerId
                                           && s.DeletedDate == null);
         }
 

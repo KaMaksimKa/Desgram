@@ -5,7 +5,7 @@ namespace Desgram.Api.Config
 {
     public class EmailConfig
     {
-        public const string Position = "email";
+        public const string Position = "EmailSender";
         public string DesgramEmailAddress { get; set; } = null!;
         public string DesgramEmailAddressPassword { get; set; } = null!;
         public string ConnectAddress { get; set; } = null!;

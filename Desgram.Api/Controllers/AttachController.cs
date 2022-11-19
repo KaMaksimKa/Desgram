@@ -40,7 +40,6 @@ namespace Desgram.Api.Controllers
         }
 
         [Route("{id}")]
-        [AllowAnonymous]
         [HttpGet]
         public async Task<FileResult> DisplayAttachById(Guid id)
         {

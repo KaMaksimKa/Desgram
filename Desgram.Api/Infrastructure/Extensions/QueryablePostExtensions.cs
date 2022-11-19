@@ -18,13 +18,5 @@ namespace Desgram.Api.Infrastructure.Extensions
             return post;
         }
 
-        public static IQueryable<Post> GetAvailablePostsByUserId(this IQueryable<Post> posts, Guid userId)
-        {
-            return posts.Where(p=>p.DeletedDate == null && (!p.User.IsPrivate || p.UserId == userId 
-                                               || p.User.Followers
-                                                   .Any(s=>s.DeletedDate == null 
-                                                           && s.FollowerId == userId
-                                                           && s.IsApproved)));
-        }
     }
 }

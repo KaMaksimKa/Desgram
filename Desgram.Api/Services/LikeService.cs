@@ -19,16 +19,16 @@ namespace Desgram.Api.Services
             _context = context;
         }
 
-        public async Task AddLikePostAsync(Guid postId, Guid userId)
+        public async Task AddLikePostAsync(Guid postId, Guid requestorId)
         {
             var post = await _context.Posts.GetPostById(postId);
 
-            if (await CheckLikePost(postId, userId))
+            if (await CheckLikePost(postId, requestorId))
             {
                 throw new LikeAlreadyExistsException();
             }
 
-            var user = await _context.Users.GetUserByIdAsync(userId);
+            var user = await _context.Users.GetUserByIdAsync(requestorId);
 
             var like = new LikePost()
             {
@@ -44,11 +44,11 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task DeleteLikePostAsync(Guid postId, Guid userId)
+        public async Task DeleteLikePostAsync(Guid postId, Guid requestorId)
         {
-            var like = await GetLikePostAsync(postId, userId);
+            var like = await GetLikePostAsync(postId, requestorId);
 
-            if (like.UserId != userId)
+            if (like.UserId != requestorId)
             {
                 throw new AuthorContentException();
             }
@@ -58,16 +58,16 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task AddLikeCommentAsync(Guid commentId, Guid userId)
+        public async Task AddLikeCommentAsync(Guid commentId, Guid requestorId)
         {
             var comment = await _context.Comments.GetCommentById(commentId);
 
-            if (await CheckLikeComment(commentId, userId))
+            if (await CheckLikeComment(commentId, requestorId))
             {
                 throw new LikeAlreadyExistsException();
             }
 
-            var user = await _context.Users.GetUserByIdAsync(userId);
+            var user = await _context.Users.GetUserByIdAsync(requestorId);
 
             var like = new LikeComment()
             {
@@ -83,9 +83,9 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task DeleteLikeCommentAsync(Guid commentId, Guid userId)
+        public async Task DeleteLikeCommentAsync(Guid commentId, Guid requestorId)
         {
-            var like = await GetLikeCommentAsync(commentId, userId);
+            var like = await GetLikeCommentAsync(commentId, requestorId);
 
             like.DeletedDate = DateTimeOffset.Now.UtcDateTime;
 

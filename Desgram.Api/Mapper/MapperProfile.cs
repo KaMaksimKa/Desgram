@@ -3,6 +3,7 @@ using Desgram.Api.Models.Attach;
 using Desgram.Api.Models.Blocked;
 using Desgram.Api.Models.Comment;
 using Desgram.Api.Models.Post;
+using Desgram.Api.Models.Role;
 using Desgram.Api.Models.User;
 using Desgram.DAL.Entities;
 using Desgram.SharedKernel;
@@ -58,6 +59,8 @@ namespace Desgram.Api.Mapper
 
 
             CreateMap<BlockingUser, BlockedUserModel>();
+
+            CreateMap<ApplicationRole, ApplicationRoleModel>();
 
 
         }

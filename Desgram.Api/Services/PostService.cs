@@ -28,9 +28,9 @@ namespace Desgram.Api.Services
             _urlService = urlService;
         }
         
-        public async Task CreatePostAsync(CreatePostModel model, Guid userId)
+        public async Task CreatePostAsync(CreatePostModel model, Guid requestorId)
         {
-            var user = await _context.Users.GetUserByIdAsync(userId);
+            var user = await _context.Users.GetUserByIdAsync(requestorId);
             var hashTagsString = model.Description.Split().Where(w => w.StartsWith("#")).ToList();
             var hashTags = await GetHashTags(hashTagsString);
 
@@ -63,11 +63,11 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task DeletePostAsync(Guid postId, Guid userId)
+        public async Task DeletePostAsync(Guid postId, Guid requestorId)
         {
             var post = await _context.Posts.GetPostById(postId);
 
-            if (post.UserId != userId)
+            if (post.UserId != requestorId)
             {
                 throw new AuthorContentException();
             }
@@ -77,11 +77,11 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task UpdatePostAsync(UpdatePostModel model, Guid userId)
+        public async Task UpdatePostAsync(UpdatePostModel model, Guid requestorId)
         {
             var post = await _context.Posts.GetPostById(model.PostId);
 
-            if (post.UserId != userId)
+            if (post.UserId != requestorId)
             {
                 throw new AuthorContentException();
             }
@@ -92,11 +92,11 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task ChangeLikesVisibilityAsync(ChangeLikesVisibilityModel model, Guid userId)
+        public async Task ChangeLikesVisibilityAsync(ChangeLikesVisibilityModel model, Guid requestorId)
         {
             var post = await _context.Posts.GetPostById(model.PostId);
 
-            if (post.UserId != userId)
+            if (post.UserId != requestorId)
             {
                 throw new AuthorContentException();
             }
@@ -107,11 +107,11 @@ namespace Desgram.Api.Services
 
         }
 
-        public async Task ChangeIsCommentsEnabledAsync(ChangeIsCommentsEnabledModel model, Guid userId)
+        public async Task ChangeIsCommentsEnabledAsync(ChangeIsCommentsEnabledModel model, Guid requestorId)
         {
             var post = await _context.Posts.GetPostById(model.PostId);
 
-            if (post.UserId != userId)
+            if (post.UserId != requestorId)
             {
                 throw new AuthorContentException();
             }
@@ -121,38 +121,40 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task<List<PostModel>> GetAllPostsAsync(PostRequestModel model, Guid userId)
+        public async Task<List<PostModel>> GetAllPostsAsync(PostRequestModel model, Guid requestorId)
         {
             var posts =(await _context.Posts
-                .GetAvailablePostsByUserId(userId)
+                .Where(p=>!p.User.IsPrivate
+                          && !p.User.BlockedUsers.Any(u => u.BlockedId == requestorId && u.DeletedDate == null))
                 .Skip(model.Skip).Take(model.Take)
                 .ProjectTo<PostModel>(_mapper.ConfigurationProvider)
                 .ToListAsync());
 
-            await AfterMapPostAsync(posts,userId);
+            await AfterMapPostAsync(posts,requestorId);
 
             return posts;
         }
 
-        public async Task<List<PostModel>> GetPostByHashTagAsync(PostByHashtagRequestModel model,Guid userId)
+        public async Task<List<PostModel>> GetPostByHashTagAsync(PostByHashtagRequestModel model,Guid requestorId)
         {
             var posts = await _context.Posts
-                .GetAvailablePostsByUserId(userId)
+                .Where(p => !p.User.IsPrivate 
+                            && !p.User.BlockedUsers.Any(u=>u.BlockedId == requestorId && u.DeletedDate == null))
                 .Where(p => p.HashTags.Any(tag => tag.Title == model.Hashtag))
                 .Skip(model.Skip).Take(model.Take)
                 .ProjectTo<PostModel>(_mapper.ConfigurationProvider)
                 .ToListAsync();
 
-            await AfterMapPostAsync(posts,userId);
+            await AfterMapPostAsync(posts,requestorId);
 
             return posts;
         }
 
-        public async Task<List<PostModel>> GetSubscriptionsFeedAsync(PostRequestModel model,Guid userId)
+        public async Task<List<PostModel>> GetSubscriptionsFeedAsync(PostRequestModel model,Guid requestorId)
         {
 
             var posts = await _context.UserSubscriptions
-                .Where(s=>s.FollowerId == userId && s.DeletedDate == null && s.IsApproved)
+                .Where(s=>s.FollowerId == requestorId && s.DeletedDate == null && s.IsApproved)
                 .Select(s=>s.ContentMaker)
                 .SelectMany(u=>u.Posts)
                 .Where(p=>p.DeletedDate == null)
@@ -160,18 +162,18 @@ namespace Desgram.Api.Services
                 .ProjectTo<PostModel>(_mapper.ConfigurationProvider)
                 .ToListAsync();
 
-            await AfterMapPostAsync(posts, userId);
+            await AfterMapPostAsync(posts, requestorId);
 
             return posts;
         }
 
-        public async Task<List<PostModel>> GetPostsByUserIdAsync(PostByUserIdRequestModel model, Guid userId)
+        public async Task<List<PostModel>> GetUserPostsAsync(PostByUserIdRequestModel model, Guid requestorId)
         {
             var contentMaker = await _context.Users.GetUserByIdAsync(model.UserId);
 
             if (contentMaker.IsPrivate &&
                !(await _context.UserSubscriptions.AnyAsync(s =>s.DeletedDate == null && s.IsApproved
-               && (s.ContentMakerId == contentMaker.Id && s.FollowerId == userId)) || contentMaker.Id == userId))
+               && (s.ContentMakerId == contentMaker.Id && s.FollowerId == requestorId)) || contentMaker.Id == requestorId))
             {
                 throw new AccessActionException();
             }
@@ -184,7 +186,7 @@ namespace Desgram.Api.Services
                 .ProjectTo<PostModel>(_mapper.ConfigurationProvider)
                 .ToListAsync();
 
-            await AfterMapPostAsync(publications,userId);
+            await AfterMapPostAsync(publications,requestorId);
 
             return publications;
         }

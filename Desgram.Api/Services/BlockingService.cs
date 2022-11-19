@@ -23,16 +23,16 @@ namespace Desgram.Api.Services
         }
 
 
-        public async Task BlockUserAsync(Guid blockUserId, Guid userId)
+        public async Task BlockUserAsync(Guid userId, Guid requestorId)
         {
 
-            if (await CheckBlockingAsync(blockUserId, userId))
+            if (await CheckBlockingAsync(userId, requestorId))
             {
                 throw new BlockingAlreadyExistsException();
             }
 
-            var blockUser = await _context.Users.GetUserByIdAsync(blockUserId);
-            var user = await _context.Users.GetUserByIdAsync(userId);
+            var blockUser = await _context.Users.GetUserByIdAsync(userId);
+            var user = await _context.Users.GetUserByIdAsync(requestorId);
 
             var blockingUser = new BlockingUser()
             {
@@ -45,22 +45,67 @@ namespace Desgram.Api.Services
 
             await _context.BlockingUsers.AddAsync(blockingUser);
 
+            #region Удаление комментариев заблокираванного пользователя с постов 
+
+            var blockingComments = await _context.Posts
+                .Where(p => p.UserId == requestorId)
+                .SelectMany(p => p.Comments)
+                .Where(c => c.UserId == userId)
+                .ToListAsync();
+
+            foreach (var comment in blockingComments)
+            {
+                comment.DeletedDate = DateTimeOffset.Now.UtcDateTime;
+            }
+
+            #endregion
+
+            #region Удаление лайков заблокираванного пользователя с постов
+
+            var blockingLikesPosts = await _context.Posts
+                .Where(p => p.UserId == requestorId)
+                .SelectMany(p => p.Likes)
+                .Where(l => l.UserId == userId)
+                .ToListAsync();
+
+            foreach (var like in blockingLikesPosts)
+            {
+                like.DeletedDate = DateTimeOffset.Now.UtcDateTime;
+            }
+
+            #endregion
+
+            #region Удаление взаимной подписки при наличии
+
+            var subscriptions = await _context.UserSubscriptions
+                .Where(s => (s.ContentMakerId == requestorId && s.FollowerId == userId)
+                            || (s.ContentMakerId == userId && s.FollowerId == requestorId))
+                .ToListAsync();
+
+            foreach (var subscription in subscriptions)
+            {
+                subscription.DeletedDate = DateTimeOffset.Now.UtcDateTime;
+            }
+
+            #endregion
+
+
             await _context.SaveChangesAsync();
         }
 
-        public async Task UnblockUserAsync(Guid blockUserId, Guid userId)
+        public async Task UnblockUserAsync(Guid userId, Guid requestorId)
         {
-            var blockingUser = await GetBlockingAsync(blockUserId, userId);
+            var blockingUser = await GetBlockingAsync(userId, requestorId);
 
             blockingUser.DeletedDate = DateTimeOffset.Now.UtcDateTime;
 
             await _context.SaveChangesAsync();
         }
 
-        public async Task<List<PartialUserModel>> GetBlockedUsersAsync(Guid userId)
+        public async Task<List<PartialUserModel>> GetBlockedUsersAsync(Guid requestorId)
         {
             var blockedUsers = await _context.BlockingUsers
-                .Where(b => b.UserId == userId && b.DeletedDate == null)
+                .Where(b => b.UserId == requestorId && b.DeletedDate == null)
                 .Select(b=>b.Blocked)
                 .ProjectTo<PartialUserModel>(_mapper.ConfigurationProvider)
                 .ToListAsync();

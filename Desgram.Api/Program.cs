@@ -1,6 +1,7 @@
 using AspNetCoreRateLimit;
 using Desgram.Api;
 using Desgram.Api.Config;
+using Desgram.Api.Infrastructure;
 using Desgram.Api.Infrastructure.Middlewares;
 using Desgram.Api.Mapper;
 using Desgram.Api.Services;
@@ -9,6 +10,7 @@ using Desgram.DAL;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
@@ -16,12 +18,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 var authSection = builder.Configuration.GetSection(AuthConfig.Position);
 var authConfig = authSection.Get<AuthConfig>();
-
 builder.Services.Configure<AuthConfig>(authSection);
 
-var emailSection = builder.Configuration.GetSection(EmailConfig.Position);
-builder.Services.Configure<EmailConfig>(emailSection);
-
+builder.Services.Configure<EmailConfig>(builder.Configuration.GetSection(EmailConfig.Position));
+builder.Services.Configure<AdminUserConfig>(builder.Configuration.GetSection(AdminUserConfig.Position));
 
 
 builder.Services.AddControllers();
@@ -90,7 +90,7 @@ builder.Services.AddScoped<ILikeService, LikeService>();
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 builder.Services.AddScoped<IEmailSender, EmailSender>();
 builder.Services.AddScoped<IUrlService,UrlService>();
-
+builder.Services.AddScoped<IRoleService, RoleService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
     {
@@ -127,6 +127,23 @@ using (var scope = app.Services.CreateScope())
         await context.Database.MigrateAsync();
     
     }
+}
+
+
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetService<ApplicationContext>();
+    var config = scope.ServiceProvider.GetService<IOptions<AdminUserConfig>>();
+    if (config == null)
+    {
+        throw new NullReferenceException(nameof(IOptions<AdminUserConfig>));
+    }
+    if (context == null)
+    {
+        throw new NullReferenceException(nameof(ApplicationContext));
+    }
+
+    await DataInitializer.CreateAdminUser(config,context);
 }
 
 

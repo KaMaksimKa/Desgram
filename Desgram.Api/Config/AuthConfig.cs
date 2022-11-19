@@ -5,7 +5,7 @@ namespace Desgram.Api.Config
 {
     public class AuthConfig
     {
-        public const string Position = "auth";
+        public const string Position = "Auth";
         public string Issuer { get; set; } = string.Empty;
         public string Audience { get; set; } = string.Empty;
         public string Key { get; set; } = string.Empty;

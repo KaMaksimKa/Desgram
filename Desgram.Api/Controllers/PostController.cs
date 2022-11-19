@@ -49,7 +49,7 @@ namespace Desgram.Api.Controllers
         [HttpGet]
         public async Task<List<PostModel>> GetPostsByUserId([FromQuery] PostByUserIdRequestModel model)
         {
-            return await _postService.GetPostsByUserIdAsync(model, User.GetUserId());
+            return await _postService.GetUserPostsAsync(model, User.GetUserId());
         }
 
         [HttpPost]
