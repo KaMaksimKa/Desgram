@@ -1,4 +1,6 @@
 ﻿using Desgram.Api.Infrastructure.Extensions;
+using Desgram.Api.Models;
+using Desgram.Api.Models.Subscription;
 using Desgram.Api.Models.User;
 using Desgram.Api.Services.Interfaces;
 using Desgram.Api.Services.ServiceModel.Subscription;
@@ -24,69 +26,69 @@ namespace Desgram.Api.Controllers
         [HttpPost]
         public async Task Subscribe(Guid contentMakerId)
         {
-            var model = new SubscriptionModel()
-            {
-                FollowerId = User.GetUserId(),
-                ContentMakerId = contentMakerId
-            };
-
-            await _subscriptionService.SubscribeAsync(model);
+            await _subscriptionService.SubscribeAsync(contentMakerId,User.GetUserId());
         }
 
         [Route("{contentMakerId}")]
         [HttpPost]
         public async Task Unsubscribe(Guid contentMakerId)
         {
-            var model = new SubscriptionModel()
-            {
-                FollowerId = User.GetUserId(),
-                ContentMakerId = contentMakerId
-            };
-            await _subscriptionService.UnsubscribeAsync(model);
+            await _subscriptionService.UnsubscribeAsync(contentMakerId,User.GetUserId());
         }
 
         [Route("{followerId}")]
         [HttpPost]
         public async Task DeleteFollower(Guid followerId)
         {
-            var model = new SubscriptionModel()
-            {
-                FollowerId = followerId,
-                ContentMakerId = User.GetUserId()
-            };
-            await _subscriptionService.DeleteFollowerAsync(model);
+            await _subscriptionService.DeleteFollowerAsync(followerId,User.GetUserId());
         }
 
         [Route("{followerId}")]
         [HttpPost]
         public async Task AcceptSubscription(Guid followerId)
         {
-            var model = new SubscriptionModel()
+            await _subscriptionService.AcceptSubscriptionAsync(followerId,User.GetUserId());
+        }
+
+        [HttpGet]
+        public Task<List<PartialUserModel>> GetFollowing([FromQuery]SkipTakeModel model)
+        {
+            var userId = User.GetUserId();
+            return _subscriptionService.GetUserFollowingAsync(new UserFollowingRequestModel()
             {
-                FollowerId = followerId,
-                ContentMakerId = User.GetUserId()
-            };
-
-            await _subscriptionService.AcceptSubscriptionAsync(model);
+                Skip = model.Skip,
+                UserId = userId,
+                Take = model.Take,
+            },userId);
         }
 
         [HttpGet]
-        public Task<List<PartialUserModel>> GetFollowing()
+        public Task<List<PartialUserModel>> GetUserFollowing([FromQuery]UserFollowingRequestModel model)
+        {
+            return _subscriptionService.GetUserFollowingAsync(model, User.GetUserId());
+        }
+
+        [HttpGet]
+        public Task<List<PartialUserModel>> GetFollowers([FromQuery]SkipTakeModel model)
         {
             var userId = User.GetUserId();
-            return _subscriptionService.GetUserFollowingAsync(userId,userId);
+            return _subscriptionService.GetUserFollowersAsync(new UserFollowersRequestModel()
+            {
+                Skip = model.Skip,
+                UserId = userId,
+                Take = model.Take,
+            }, userId);
         }
 
         [HttpGet]
-        public Task<List<PartialUserModel>> GetFollowers()
+        public Task<List<PartialUserModel>> GetUserFollowers([FromQuery]UserFollowersRequestModel model)
         {
-            var userId = User.GetUserId();
-            return _subscriptionService.GetUserFollowersAsync(userId,userId);
+            return _subscriptionService.GetUserFollowersAsync(model, User.GetUserId());
         }
 
         [HttpGet]
-        public Task<List<PartialUserModel>> GetSubRequests() => 
-            _subscriptionService.GetSubRequestsAsync(User.GetUserId());
+        public Task<List<PartialUserModel>> GetSubRequests([FromQuery]SkipTakeModel model) => 
+            _subscriptionService.GetSubRequestsAsync(model,User.GetUserId());
         
     }
 }

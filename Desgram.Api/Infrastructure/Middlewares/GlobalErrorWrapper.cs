@@ -45,6 +45,7 @@ namespace Desgram.Api.Infrastructure.Middlewares
                 context.Response.StatusCode = 401;
                 await context.Response.WriteAsJsonAsync(new
                 {
+                    e.Code,
                     e.Message,
                 });
             }

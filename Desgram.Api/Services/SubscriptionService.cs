@@ -1,6 +1,8 @@
 ﻿using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using Desgram.Api.Infrastructure.Extensions;
+using Desgram.Api.Models;
+using Desgram.Api.Models.Subscription;
 using Desgram.Api.Models.User;
 using Desgram.Api.Services.Interfaces;
 using Desgram.DAL;
@@ -25,15 +27,18 @@ namespace Desgram.Api.Services
 
         public async Task SubscribeAsync(Guid contentMakerId, Guid requestorId)
         {
-            var follower = await _context.Users.GetUserByIdAsync(requestorId);
-            var contentMaker = await _context.Users.GetUserByIdAsync(contentMakerId);
-
+            if (contentMakerId == requestorId)
+            {
+                throw new InvalidUserIdException();
+            }
 
             if (await CheckSubscriptionAsync(requestorId,contentMakerId))
             {
                 throw new SubscriptionAlreadyExistsException();
             }
 
+            var follower = await _context.Users.GetUserByIdAsync(requestorId);
+            var contentMaker = await _context.Users.GetUserByIdAsync(contentMakerId);
 
             var subscribe = new UserSubscription()
             {
@@ -73,53 +78,56 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task<List<PartialUserModel>> GetSubRequestsAsync(Guid requestorId)
+        public async Task<List<PartialUserModel>> GetSubRequestsAsync(SkipTakeModel model,Guid requestorId)
         {
             var user = await _context.Users.GetUserByIdAsync(requestorId);
 
-            var partialUserModels = await _context.UserSubscriptions
+            var partialUserModels = await _context.UserSubscriptions.AsNoTracking()
                 .Where(s => s.ContentMakerId == user.Id && s.DeletedDate == null && s.IsApproved == false)
                 .Select(s=>s.Follower)
+                .Skip(model.Skip).Take(model.Take)
                 .ProjectTo<PartialUserModel>(_mapper.ConfigurationProvider)
                 .ToListAsync();
 
-            return partialUserModels;
+            return partialUserModels.Select(u=>_mapper.Map<PartialUserModel>(u)).ToList();
         }
 
-        public async Task<List<PartialUserModel>> GetUserFollowingAsync(Guid userId, Guid requestorId)
+        public async Task<List<PartialUserModel>> GetUserFollowingAsync(UserFollowingRequestModel model, Guid requestorId)
         {
-            var user = await _context.Users.GetUserByIdAsync(userId);
+            var user = await _context.Users.GetUserByIdAsync(model.UserId);
 
-            if (user.IsPrivate && userId != requestorId)
+            if (user.IsPrivate && model.UserId != requestorId)
             {
                 throw new AccessActionException();
             }
 
-            var followers = await _context.UserSubscriptions
-                .Where(s => s.ContentMakerId == user.Id && s.DeletedDate == null && s.IsApproved)
-                .Select(s => s.Follower)
-                .ProjectTo<PartialUserModel>(_mapper.ConfigurationProvider)
-                .ToListAsync();
-
-            return followers;
-        }
-
-        public async Task<List<PartialUserModel>> GetUserFollowersAsync(Guid userId, Guid requestorId)
-        {
-            var user = await _context.Users.GetUserByIdAsync(userId);
-
-            if (user.IsPrivate && userId != requestorId)
-            {
-                throw new AccessActionException();
-            }
-
-            var following = await _context.UserSubscriptions
+            var followers = await _context.UserSubscriptions.AsNoTracking()
                 .Where(s => s.FollowerId == user.Id && s.DeletedDate == null && s.IsApproved)
                 .Select(s => s.ContentMaker)
+                .Skip(model.Skip).Take(model.Take)
                 .ProjectTo<PartialUserModel>(_mapper.ConfigurationProvider)
                 .ToListAsync();
 
-            return following;
+            return followers.Select(u => _mapper.Map<PartialUserModel>(u)).ToList();
+        }
+
+        public async Task<List<PartialUserModel>> GetUserFollowersAsync(UserFollowersRequestModel model, Guid requestorId)
+        {
+            var user = await _context.Users.GetUserByIdAsync(model.UserId);
+
+            if (user.IsPrivate && model.UserId != requestorId)
+            {
+                throw new AccessActionException();
+            }
+
+            var following = await _context.UserSubscriptions.AsNoTracking()
+                .Where(s => s.ContentMakerId == user.Id && s.DeletedDate == null && s.IsApproved)
+                .Select(s => s.Follower)
+                .Skip(model.Skip).Take(model.Take)
+                .ProjectTo<PartialUserModel>(_mapper.ConfigurationProvider)
+                .ToListAsync();
+
+            return following.Select(u => _mapper.Map<PartialUserModel>(u)).ToList();
         }
 
         private async Task<UserSubscription> GetSubscriptionAsync(Guid followerId, Guid contentMakerId)

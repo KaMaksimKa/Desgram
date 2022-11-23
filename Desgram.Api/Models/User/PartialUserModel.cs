@@ -6,7 +6,7 @@ namespace Desgram.Api.Models.User
     {
         public Guid Id { get; set; }
         public string Name { get; set; } = null!;
-        public AttachWithUrlModel? Avatar { get; set; }
-
+        public ImageWithUrlModel? Avatar { get; set; }
+    
     }
 }

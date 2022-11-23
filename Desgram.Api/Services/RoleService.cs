@@ -85,7 +85,7 @@ namespace Desgram.Api.Services
 
         public async Task<List<ApplicationRoleModel>> GetUserRoles(Guid userId)
         {
-            return await _context.Users
+            return await _context.Users.AsNoTracking()
                 .Where(u => u.Id == userId)
                 .SelectMany(u => u.Roles)
                 .ProjectTo<ApplicationRoleModel>(_mapper.ConfigurationProvider)

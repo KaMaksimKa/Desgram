@@ -1,8 +1,8 @@
 ﻿using Desgram.Api.Infrastructure.Extensions;
+using Desgram.Api.Models;
 using Desgram.Api.Models.User;
 using Desgram.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Desgram.Api.Controllers
@@ -33,9 +33,9 @@ namespace Desgram.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<List<PartialUserModel>> GetBlockedUsers()
+        public async Task<List<PartialUserModel>> GetBlockedUsers([FromQuery] SkipTakeModel model)
         {
-            return await _blockingService.GetBlockedUsersAsync(User.GetUserId());
+            return await _blockingService.GetBlockedUsersAsync(model,User.GetUserId());
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using Desgram.Api.Infrastructure.Extensions;
+using Desgram.Api.Models;
 using Desgram.Api.Models.User;
 using Desgram.Api.Services.Interfaces;
 using Desgram.DAL;
@@ -25,6 +26,10 @@ namespace Desgram.Api.Services
 
         public async Task BlockUserAsync(Guid userId, Guid requestorId)
         {
+            if (userId == requestorId)
+            {
+                throw new InvalidUserIdException();
+            }
 
             if (await CheckBlockingAsync(userId, requestorId))
             {
@@ -102,15 +107,18 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task<List<PartialUserModel>> GetBlockedUsersAsync(Guid requestorId)
+        public async Task<List<PartialUserModel>> GetBlockedUsersAsync(SkipTakeModel model,Guid requestorId)
         {
-            var blockedUsers = await _context.BlockingUsers
+            var blockedUsers = await _context.BlockingUsers.AsNoTracking()
                 .Where(b => b.UserId == requestorId && b.DeletedDate == null)
                 .Select(b=>b.Blocked)
+                .Skip(model.Skip).Take(model.Take)
                 .ProjectTo<PartialUserModel>(_mapper.ConfigurationProvider)
                 .ToListAsync();
 
-            return blockedUsers;
+      
+
+            return blockedUsers.Select(u=> _mapper.Map<PartialUserModel>(u)).ToList();
         }
 
         private async Task<BlockingUser> GetBlockingAsync(Guid blockUserId, Guid userId)

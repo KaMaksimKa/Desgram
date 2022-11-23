@@ -22,10 +22,10 @@ namespace Desgram.Api.Services
             _mapper = mapper;
         }
 
-        public async Task AddCommentAsync(CreateCommentModel model, Guid requestorId)
+        public async Task<CommentModel> AddCommentAsync(CreateCommentModel model, Guid requestorId)
         {
             var user = await _context.Users.GetUserByIdAsync(requestorId);
-            var post = await _context.Posts.GetPostById(model.PostId);
+            var post = await _context.Posts.GetPostByIdAsync(model.PostId);
 
             if (!post.IsCommentsEnabled)
             {
@@ -45,12 +45,24 @@ namespace Desgram.Api.Services
 
             await _context.Comments.AddAsync(comment);
             await _context.SaveChangesAsync();
+
+
+            var commentModel = await _context.Comments.AsNoTracking()
+                .ProjectToByRequestorId<CommentModel>(_mapper.ConfigurationProvider,requestorId)
+                .FirstOrDefaultAsync(c => c.Id == comment.Id);
+
+            if (commentModel == null)
+            {
+                throw new CommentNotFoundException();
+            }
+
+            return _mapper.Map<CommentModel>(commentModel);
         }
 
         public async Task DeleteCommentAsync(Guid commentId, Guid requestorId)
         {
-            var comment = await _context.Comments.GetCommentById(commentId);
-            var post = await _context.Posts.GetPostById(comment.PostId);
+            var comment = await _context.Comments.GetCommentByIdAsync(commentId);
+            var post = await _context.Posts.GetPostByIdAsync(comment.PostId);
 
             if (comment.UserId != requestorId && post.UserId != requestorId)
             {
@@ -64,19 +76,18 @@ namespace Desgram.Api.Services
 
         public async Task<List<CommentModel>> GetCommentsAsync(CommentRequestModel model, Guid requestorId)
         {
-            var comments = await _context.Comments
+            var comments = await _context.Comments.AsNoTracking()
                 .Where(c => c.PostId == model.PostId && c.DeletedDate == null)
                 .Skip(model.Skip).Take(model.Take)
-                .ProjectTo<CommentModel>(_mapper.ConfigurationProvider).ToListAsync();
+                .ProjectToByRequestorId<CommentModel>(_mapper.ConfigurationProvider,requestorId)
+                .ToListAsync();
 
-            await AfterMapComment(comments, requestorId);
-
-            return comments;
+            return comments.Select(c=>_mapper.Map<CommentModel>(c)).ToList();
         }
 
         public async Task UpdateCommentAsync(UpdateCommentModel model, Guid requestorId)
         {
-            var comment = await _context.Comments.GetCommentById(model.CommentId);
+            var comment = await _context.Comments.GetCommentByIdAsync(model.CommentId);
 
             if (comment.UserId != requestorId)
             {
@@ -88,27 +99,5 @@ namespace Desgram.Api.Services
 
             await _context.SaveChangesAsync();
         }
-        private async Task AfterMapComment(List<CommentModel> comments, Guid userId)
-        {
-            var commentsInfo = await _context.Comments
-                .Where(c => comments.Select(com => com.Id).Contains(c.Id))
-                .Select(c => new {
-                    c.Id,
-                    IsLiked = c.Likes.Any(l => l.UserId == userId && l.DeletedDate == null)
-                }).ToListAsync();
-
-            foreach (var commentModel in comments)
-            {
-                var commentInfo = commentsInfo.FirstOrDefault(c => c.Id == commentModel.Id);
-                if (commentInfo == null)
-                {
-                    throw new CommentNotFoundException();
-                }
-                commentModel.IsLiked = commentInfo.IsLiked;
-                commentModel.IsAuthor = commentModel.User.Id == userId;
-            }
-        }
-
-      
     }
 }

@@ -1,6 +1,4 @@
-﻿using Desgram.DAL;
-using Desgram.DAL.Entities;
-using Desgram.SharedKernel.Exceptions;
+﻿using Desgram.DAL.Entities;
 using Desgram.SharedKernel.Exceptions.NotFoundExceptions;
 using Microsoft.EntityFrameworkCore;
 

@@ -81,7 +81,7 @@ namespace Desgram.Api.Services
             if (securityToken is not JwtSecurityToken jwToken ||
                 !jwToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
             {
-                throw new UnauthorizedException();
+                throw new InvalidRefreshTokenException();
             }
 
             var refreshTokenId = principal.GetRefreshTokenId();
@@ -89,7 +89,7 @@ namespace Desgram.Api.Services
             var session = await GetSessionByRefreshIdAsync(refreshTokenId);
             if (!session.IsActive)
             {
-                throw new UnauthorizedException();
+                throw new SessionIsNotActiveException();
             }
 
             session.RefreshTokenId = Guid.NewGuid();
@@ -117,6 +117,20 @@ namespace Desgram.Api.Services
                 .Where(s => s.UserId == userId && s.IsActive)
                 .ToListAsync();
 
+
+            foreach (var session in sessions)
+            {
+                session.IsActive = false;
+            }
+
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task LogoutAllUsersAsync()
+        {
+            var sessions = await _context.UserSessions
+                .Where(s => s.IsActive)
+                .ToListAsync();
 
             foreach (var session in sessions)
             {

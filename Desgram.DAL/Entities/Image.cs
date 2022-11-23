@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace Desgram.DAL.Entities
 {
-    public class Avatar:ImageContent
+    public class Image:Attach
     {
-        public Guid UserId { get; set; }
-        public virtual User User { get; set; } = null!;
+        public int Width { get; set; }
+        public int Height { get; set; }
     }
 }

@@ -12,7 +12,7 @@
         public bool IsLikesVisible { get; set; }
 
         public virtual User User { get; set; } = null!;
-        public virtual ICollection<AttachPost> Attaches { get; set; } = null!;
+        public virtual ICollection<PostImageContent> ImagePostContents { get; set; } = null!;
         public virtual ICollection<LikePost> Likes { get; set; } = null!;
         public virtual ICollection<Comment> Comments { get; set; } = null!;
         public virtual ICollection<HashTag> HashTags { get; set; } = null!;

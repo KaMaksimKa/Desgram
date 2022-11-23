@@ -48,5 +48,13 @@ namespace Desgram.Api.Controllers
             var userId = User.GetUserId();
             await _authService.LogoutAllDeviceByUserIdAsync(userId);
         }
+
+        [ApiExplorerSettings(GroupName = "Admin")]
+        [Authorize(Roles = "Admin")]
+        [HttpPost]
+        public async Task LogoutAllUsers()
+        {
+            await _authService.LogoutAllUsersAsync();
+        }
     }
 }

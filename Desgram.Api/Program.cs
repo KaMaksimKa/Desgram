@@ -58,6 +58,7 @@ builder.Services.AddSwaggerGen(options =>
 
     options.SwaggerDoc("Auth", new OpenApiInfo { Title = "Auth" });
     options.SwaggerDoc("Api", new OpenApiInfo { Title = "Api" });
+    options.SwaggerDoc("Admin", new OpenApiInfo { Title = "Admin" });
 } );
 
 var connectionString = builder.Configuration.GetConnectionString(Constants.ConnectionStringNames.PostgresSql);
@@ -91,6 +92,9 @@ builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 builder.Services.AddScoped<IEmailSender, EmailSender>();
 builder.Services.AddScoped<IUrlService,UrlService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
+builder.Services.AddScoped<IImageEditor, ImageEditor>();
+builder.Services.AddScoped<IBlockingService, BlockingService>();
+builder.Services.AddScoped<AttachModelMapperAction>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
     {
@@ -154,6 +158,7 @@ if (app.Environment.IsDevelopment())
     {
         options.SwaggerEndpoint("Api/swagger.json", "Api");
         options.SwaggerEndpoint("Auth/swagger.json", "Auth");
+        options.SwaggerEndpoint("Admin/swagger.json", "Admin");
     } );
 }
 

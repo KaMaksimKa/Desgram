@@ -9,7 +9,6 @@ namespace Desgram.DAL
         public DbSet<User> Users { get; init; } = null!;
         public DbSet<Comment> Comments { get; init; } = null!;
         public DbSet<Avatar> Avatars { get; init; } = null!;
-        public DbSet<AttachPost> AttachesPosts { get; init; } = null!;
         public DbSet<Attach> Attaches { get; init; } = null!;
         public DbSet<LikeComment> LikesComments { get; init; } = null!;
         public DbSet<LikePost> LikesPosts { get; init; } = null!;
@@ -22,6 +21,9 @@ namespace Desgram.DAL
         public DbSet<UnconfirmedUser> UnconfirmedUsers { get; init; } = null!;
         public DbSet<UnconfirmedEmail> UnconfirmedEmails { get; init; } = null!;
         public DbSet<ApplicationRole> ApplicationRoles { get; init; } = null!;
+        public DbSet<PostImageContent> PostImageContents { get; init; } = null!;
+        public DbSet<Image> Images { get; init; } = null!;
+        public DbSet<ImageContent> ImageContents { get; init; } = null!;
 
         public ApplicationContext(DbContextOptions<ApplicationContext> options) :base(options) 
         {
@@ -34,8 +36,10 @@ namespace Desgram.DAL
             modelBuilder.Entity<User>().HasIndex(u => u.Email).IsUnique();
             modelBuilder.Entity<HashTag>().HasIndex(u => u.Title).IsUnique();
 
-            modelBuilder.Entity<AttachPost>().ToTable(nameof(AttachesPosts));
+            modelBuilder.Entity<Image>().ToTable(nameof(Images));
+
             modelBuilder.Entity<Avatar>().ToTable(nameof(Avatars));
+            modelBuilder.Entity<PostImageContent>().ToTable(nameof(PostImageContents));
 
             modelBuilder.Entity<LikePost>().ToTable(nameof(LikePost));
             modelBuilder.Entity<LikeComment>().ToTable(nameof(LikeComment));

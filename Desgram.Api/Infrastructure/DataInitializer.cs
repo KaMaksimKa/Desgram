@@ -8,6 +8,9 @@ using Microsoft.Extensions.Options;
 
 namespace Desgram.Api.Infrastructure
 {
+    /// <summary>
+    /// Записывает начальные необходимые данные, в данном случае добавляет пользователя с правами администратора
+    /// </summary>
     public static class DataInitializer
     {
         public static async Task CreateAdminUser(IOptions<AdminUserConfig> config, ApplicationContext context)

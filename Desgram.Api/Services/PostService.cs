@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using AutoMapper.QueryableExtensions;
 using Desgram.Api.Infrastructure.Extensions;
 using Desgram.Api.Models.Post;
 using Desgram.Api.Services.Interfaces;
@@ -17,22 +16,47 @@ namespace Desgram.Api.Services
         private readonly ApplicationContext _context;
         private readonly IAttachService _attachService;
         private readonly IMapper _mapper;
-        private readonly IUrlService _urlService;
 
         public PostService(ApplicationContext context,IAttachService attachService,
-            IMapper mapper,IUrlService urlService)
+            IMapper mapper)
         {
             _context = context;
             _attachService = attachService;
             _mapper = mapper;
-            _urlService = urlService;
         }
         
         public async Task CreatePostAsync(CreatePostModel model, Guid requestorId)
         {
             var user = await _context.Users.GetUserByIdAsync(requestorId);
-            var hashTagsString = model.Description.Split().Where(w => w.StartsWith("#")).ToList();
-            var hashTags = await GetHashTags(hashTagsString);
+            
+            var hashTags = await GetHashTags(model.Description);
+
+            /* Пока что в роли пост контента могут выступать файлы которые конвертируются к jpeg(такие как jpeg,png и тд.)
+             В будующем планируется добавить видео*/
+            var imagePostContents = new List<PostImageContent>();
+            foreach (var metadata in model.MetadataModels)
+            {
+                imagePostContents.Add(new PostImageContent()
+                {
+                    ImageCandidates = (await _attachService.FromTempToImage(metadata))
+                        .Select(c=>new Image()
+                        {
+                            CreatedDate = DateTimeOffset.Now.UtcDateTime,
+                            DeletedDate = null,
+                            Name = metadata.Name,
+                            MimeType = c.MimeType,
+                            Id = c.Id,
+                            Path = c.Path,
+                            Owner = user,
+                            Height = c.Height,
+                            Width = c.Width,
+                            
+                        })
+                        .ToList(),
+                    CreatedDate = DateTimeOffset.Now.UtcDateTime,
+                    DeletedDate = null,
+                });
+            }
 
             var post = new Post()
             {
@@ -44,17 +68,7 @@ namespace Desgram.Api.Services
                 IsLikesVisible = model.IsLikesVisible,
                 Comments = new List<Comment>(),
                 Likes = new List<LikePost>(),
-                Attaches = model.MetadataModels
-                    .Select(meta => new AttachPost()
-                    {
-                        Id = Guid.NewGuid(),
-                        MimeType = meta.MimeType,
-                        CreatedDate = DateTimeOffset.Now.UtcDateTime,
-                        Name = meta.Name,
-                        Path = _attachService.MoveFromTempToAttach(meta),
-                        Owner = user,
-                        Size = meta.Size,
-                    }).ToList(),
+                ImagePostContents = imagePostContents,
                 HashTags = hashTags,
                 DeletedDate = null
             };
@@ -65,7 +79,7 @@ namespace Desgram.Api.Services
 
         public async Task DeletePostAsync(Guid postId, Guid requestorId)
         {
-            var post = await _context.Posts.GetPostById(postId);
+            var post = await _context.Posts.GetPostByIdAsync(postId);
 
             if (post.UserId != requestorId)
             {
@@ -79,22 +93,34 @@ namespace Desgram.Api.Services
 
         public async Task UpdatePostAsync(UpdatePostModel model, Guid requestorId)
         {
-            var post = await _context.Posts.GetPostById(model.PostId);
+            var post = await GetPostWithTagsByIdAsync(model.PostId);
 
             if (post.UserId != requestorId)
             {
                 throw new AuthorContentException();
             }
 
+            var hashtags = await GetHashTags(model.Description);
+
             post.Description = model.Description;
             post.UpdatedDate = DateTimeOffset.Now.UtcDateTime;
+
+            foreach (var hashtag in post.HashTags.ToList().Except(hashtags))
+            {
+                post.HashTags.Remove(hashtag);
+            }
+            foreach (var hashtag in hashtags.Except(post.HashTags))
+            {
+                post.HashTags.Add(hashtag);
+            }
+
 
             await _context.SaveChangesAsync();
         }
 
         public async Task ChangeLikesVisibilityAsync(ChangeLikesVisibilityModel model, Guid requestorId)
         {
-            var post = await _context.Posts.GetPostById(model.PostId);
+            var post = await _context.Posts.GetPostByIdAsync(model.PostId);
 
             if (post.UserId != requestorId)
             {
@@ -109,7 +135,7 @@ namespace Desgram.Api.Services
 
         public async Task ChangeIsCommentsEnabledAsync(ChangeIsCommentsEnabledModel model, Guid requestorId)
         {
-            var post = await _context.Posts.GetPostById(model.PostId);
+            var post = await _context.Posts.GetPostByIdAsync(model.PostId);
 
             if (post.UserId != requestorId)
             {
@@ -123,48 +149,42 @@ namespace Desgram.Api.Services
 
         public async Task<List<PostModel>> GetAllPostsAsync(PostRequestModel model, Guid requestorId)
         {
-            var posts =(await _context.Posts
-                .Where(p=>!p.User.IsPrivate
-                          && !p.User.BlockedUsers.Any(u => u.BlockedId == requestorId && u.DeletedDate == null))
+            var posts = await _context.Posts.AsNoTracking()
+                .Where(p => p.DeletedDate == null && !p.User.IsPrivate
+                            && !p.User.BlockedUsers.Any(u => u.BlockedId == requestorId && u.DeletedDate == null))
                 .Skip(model.Skip).Take(model.Take)
-                .ProjectTo<PostModel>(_mapper.ConfigurationProvider)
-                .ToListAsync());
+                .ProjectToByRequestorId<PostModel>(_mapper.ConfigurationProvider, requestorId)
+                .ToListAsync();
 
-            await AfterMapPostAsync(posts,requestorId);
-
-            return posts;
+            return posts.Select(p => _mapper.Map<PostModel>(p)).ToList();
         }
 
         public async Task<List<PostModel>> GetPostByHashTagAsync(PostByHashtagRequestModel model,Guid requestorId)
         {
-            var posts = await _context.Posts
-                .Where(p => !p.User.IsPrivate 
+            var posts = await _context.Posts.AsNoTracking()
+                .Where(p => p.DeletedDate == null && !p.User.IsPrivate 
                             && !p.User.BlockedUsers.Any(u=>u.BlockedId == requestorId && u.DeletedDate == null))
-                .Where(p => p.HashTags.Any(tag => tag.Title == model.Hashtag))
+                .Where(p => p.HashTags.Any(tag => tag.Title == model.Hashtag) )
                 .Skip(model.Skip).Take(model.Take)
-                .ProjectTo<PostModel>(_mapper.ConfigurationProvider)
+                .ProjectToByRequestorId<PostModel>(_mapper.ConfigurationProvider, requestorId)
                 .ToListAsync();
 
-            await AfterMapPostAsync(posts,requestorId);
-
-            return posts;
+            return posts.Select(p => _mapper.Map<PostModel>(p)).ToList();
         }
 
         public async Task<List<PostModel>> GetSubscriptionsFeedAsync(PostRequestModel model,Guid requestorId)
         {
 
-            var posts = await _context.UserSubscriptions
+            var posts = await _context.UserSubscriptions.AsNoTracking()
                 .Where(s=>s.FollowerId == requestorId && s.DeletedDate == null && s.IsApproved)
                 .Select(s=>s.ContentMaker)
                 .SelectMany(u=>u.Posts)
                 .Where(p=>p.DeletedDate == null)
                 .Skip(model.Skip).Take(model.Take)
-                .ProjectTo<PostModel>(_mapper.ConfigurationProvider)
+                .ProjectToByRequestorId<PostModel>(_mapper.ConfigurationProvider, requestorId)
                 .ToListAsync();
 
-            await AfterMapPostAsync(posts, requestorId);
-
-            return posts;
+            return posts.Select(p => _mapper.Map<PostModel>(p)).ToList();
         }
 
         public async Task<List<PostModel>> GetUserPostsAsync(PostByUserIdRequestModel model, Guid requestorId)
@@ -178,55 +198,23 @@ namespace Desgram.Api.Services
                 throw new AccessActionException();
             }
 
-            var publications =await _context.Users
+            var posts = await _context.Users.AsNoTracking()
                 .Where(u=>u.Id == model.UserId)
                 .SelectMany(u => u.Posts)
                 .Where(p=>p.DeletedDate == null)
                 .Skip(model.Skip).Take(model.Take)
-                .ProjectTo<PostModel>(_mapper.ConfigurationProvider)
+                .ProjectToByRequestorId<PostModel>(_mapper.ConfigurationProvider,requestorId)
                 .ToListAsync();
 
-            await AfterMapPostAsync(publications,requestorId);
-
-            return publications;
+            return posts.Select(p=>_mapper.Map<PostModel>(p)).ToList();
         }
 
-        private async Task AfterMapPostAsync(List<PostModel> posts, Guid userId)
+        private async Task<List<HashTag>> GetHashTags(string descriptionPost)
         {
-            var postsInfo = await _context.Posts
-                .Where(p => posts.Select(pub => pub.Id).Contains(p.Id))
-                .Select(p => new {
-                    p.Id,
-                    IsLiked = p.Likes.Any(l => l.UserId == userId && l.DeletedDate == null)
-                }).ToListAsync();
+            var hashTagsString = descriptionPost.Replace("#", " #").Split()
+                .Where(w => w.StartsWith("#"))
+                .ToList();
 
-            foreach (var postModel in posts)
-            {
-                var postInfo = postsInfo.FirstOrDefault(p => p.Id == postModel.Id);
-                if (postInfo == null)
-                {
-                    throw new PostNotFoundException();
-                }
-
-                postModel.IsLiked = postInfo.IsLiked;
-                postModel.IsAuthor = postModel.User.Id == userId;
-
-                foreach (var contentModel in postModel.AttachesPost)
-                {
-                    contentModel.Url = _urlService.GetUrlDisplayAttachById(contentModel.Id);
-                }
-
-
-                if (postModel.User.Avatar != null)
-                {
-                    postModel.User.Avatar.Url = _urlService.GetUrlDisplayAttachById(postModel.User.Avatar.Id);
-                }
-            }
-
-        }
-
-        private async Task<List<HashTag>> GetHashTags(List<string> hashTagsString)
-        {
             var hashTagsDb = await _context.HashTags.ToListAsync();
 
             var hashTags = new List<HashTag>();
@@ -239,18 +227,31 @@ namespace Desgram.Api.Services
                 }
                 else
                 {
-                    var newHashTag = (await _context.HashTags.AddAsync(new HashTag()
+                    var hashtag = (await _context.HashTags.AddAsync(new HashTag()
                     {
                         Id = Guid.NewGuid(),
                         Title = hashTagString
                     })).Entity;
 
-                    hashTags.Add(newHashTag);
+                    hashTags.Add(hashtag);
                 }
 
             }
             return hashTags;
         }
 
+        private async Task<Post> GetPostWithTagsByIdAsync(Guid postId)
+        {
+            var post = await _context.Posts
+                .Include(p => p.HashTags)
+                .Where(p => p.DeletedDate == null && p.Id == postId)
+                .FirstOrDefaultAsync();
+            if (post == null)
+            {
+                throw new PostNotFoundException();
+            }
+
+            return post;
+        }
     }
 }

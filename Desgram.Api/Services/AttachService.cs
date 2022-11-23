@@ -4,6 +4,9 @@ using Desgram.Api.Services.Interfaces;
 using Desgram.DAL;
 using Microsoft.EntityFrameworkCore;
 using Desgram.Api.Models.Attach;
+using Desgram.Api.Services.ServiceModel;
+using Desgram.SharedKernel.Exceptions;
+using Desgram.SharedKernel.Exceptions.BadRequestExceptions;
 using Desgram.SharedKernel.Exceptions.NotFoundExceptions;
 using SkiaSharp;
 
@@ -14,12 +17,14 @@ namespace Desgram.Api.Services
     {
         private readonly ApplicationContext _context;
         private readonly IMapper _mapper;
-        private readonly string _defaultPathImage = $"attaches";
+        private readonly IImageEditor _imageEditor;
+        private const string DefaultPathImage = $"attaches";
 
-        public AttachService(ApplicationContext context,IMapper mapper)
+        public AttachService(ApplicationContext context,IMapper mapper,IImageEditor imageEditor)
         {
             _context = context;
             _mapper = mapper;
+            _imageEditor = imageEditor;
         }
 
         public async Task<MetadataModel> SaveToTempAsync(IFormFile file)
@@ -29,7 +34,6 @@ namespace Desgram.Api.Services
                 Id = Guid.NewGuid(),
                 MimeType = file.ContentType,
                 Name = file.Name,
-                Size = file.Length
             };
 
             var path = GetTempPathById(metadata.Id);
@@ -46,40 +50,14 @@ namespace Desgram.Api.Services
 
             await file.CopyToAsync(fileStream);
 
-            EditImage(fileStream);
+          
 
             return metadata;
         }
 
-        public string MoveFromTempToAttach(MetadataModel model)
-        {
-            var pathTemp = GetTempPathById(model.Id);
-            var fileInfoTemp = new FileInfo(pathTemp);
-
-            if (!fileInfoTemp.Exists)
-            {
-                throw new AttachNotFoundException();
-            }
-
-            
-
-            var pathAttach = GetAttachPathById(model.Id);
-
-            var fileInfoAttach = new FileInfo(pathAttach);
-
-            if (fileInfoAttach.Directory is { Exists: false })
-            {
-                fileInfoAttach.Directory.Create();
-            }
-
-            File.Copy(pathTemp, pathAttach, true);
-
-            return pathAttach;
-        }
-
         public async Task<AttachWithPathModel> GetAttachByIdAsync(Guid id)
         {
-            var attach =await _context.Attaches
+            var attach =await _context.Attaches.AsNoTracking()
                 .ProjectTo<AttachWithPathModel>(_mapper.ConfigurationProvider)
                 .FirstOrDefaultAsync(x => x.Id == id);
             if (attach == null)
@@ -90,28 +68,125 @@ namespace Desgram.Api.Services
             return attach;
         }
 
+        
+        public async Task<List<ImageWithPathModel>> FromTempToImage(MetadataModel model)
+        {
+
+            var tempPath = GetTempPathById(model.Id);
+            await using var tempStream = new FileStream(tempPath, FileMode.Open);
+
+            using var skimageFromTemp = SKImage.FromEncodedData(tempStream);
+
+            if (skimageFromTemp == null)
+            {
+                throw new FileFormatIsNotSupportedException();
+            }
+
+            var imagesEditingInfo = GetImagesPostEditingInfo(skimageFromTemp.Width, skimageFromTemp.Height);
+
+            var convertImages = new List<ImageWithPathModel>();
+
+            foreach (var editingInfo in imagesEditingInfo)
+            {
+                using var croppedImage = _imageEditor.CropCentrally(skimageFromTemp, editingInfo.ImageProportions);
+
+                using var croppedSkbitmap = SKBitmap.FromImage(croppedImage);
+
+                using var resizedBitmap = croppedSkbitmap.Resize(
+                    new SKImageInfo(editingInfo.NewWidth, editingInfo.NewHeight), SKFilterQuality.High);
+
+                await using var bitmapStream = resizedBitmap.Encode(SKEncodedImageFormat.Jpeg, 100).AsStream();
+
+                var imageId = Guid.NewGuid();
+                var imagePath = GetAttachPathById(imageId);
+
+                convertImages.Add(new ImageWithPathModel()
+                {
+                    Id = imageId,
+                    Width = resizedBitmap.Width,
+                    Height = resizedBitmap.Height,
+                    MimeType = "image/jpeg",
+                    Path = imagePath
+                });
+
+
+                await using var attachStream = new FileStream(imagePath, FileMode.Create);
+
+                await bitmapStream.CopyToAsync(attachStream);
+            }
+
+            return convertImages;
+        }
+        
+        public async Task<bool> IsImage(MetadataModel model)
+        {
+
+            var tempPath = GetTempPathById(model.Id);
+            await using var tempStream = new FileStream(tempPath, FileMode.Open);
+
+            using var skimageFromTemp = SKImage.FromEncodedData(tempStream);
+
+            return skimageFromTemp != null;
+        }
+
+        /// <summary>
+        /// Returns information about necessary changing image
+        /// </summary>
+        /// <param name="width"></param>
+        /// <param name="height"></param>
+        /// <returns></returns>
+        private List<ImageEditingInfo> GetImagesPostEditingInfo(int width, int height)
+        {
+
+            /*var proportions = _imageEditor.GetImageProportions(width, height);*/
+
+            /*Пока что все изображения будут обрезаться 1:1, в будущем это поправиться*/
+            var proportions = new ImageProportions(1, 1);
+
+            var imagesEditingInfo = new List<ImageEditingInfo>();
+
+
+
+            foreach (var newWidth in ImageWidths.Widths)
+            {
+                if (newWidth <= width)
+                {
+                    imagesEditingInfo.Add(new ImageEditingInfo()
+                    {
+                        ImageProportions = proportions,
+                        NewWidth = newWidth,
+                        NewHeight = newWidth / proportions.CountPartsWidth * proportions.CountPartsHeight
+                    });
+                }
+
+            }
+
+            return imagesEditingInfo;
+        }
+
         private string GetTempPathById(Guid id)
         {
-            return Path.Combine(Path.GetTempPath(), "Desgram", _defaultPathImage, id.ToString());
+            return Path.Combine(Path.GetTempPath(), "Desgram", DefaultPathImage, id.ToString());
         }
 
         private string GetAttachPathById(Guid id)
         {
-            return Path.Combine(Directory.GetCurrentDirectory(), _defaultPathImage, id.ToString());
+            return Path.Combine(Directory.GetCurrentDirectory(), DefaultPathImage, id.ToString());
         }
 
-        private void EditImage(Stream stream)
-        {
-            stream.Seek(0, SeekOrigin.Begin);
-            var original = SKBitmap.Decode(stream);
 
-            var h = original.Height;
-            var w = original.Width;
-
-            var resized = original.Resize(new SKImageInfo(original.Width, original.Height),SKFilterQuality.High);
-            var image = SKImage.FromBitmap(resized);
-
-            
-        }
+        
     }
+
+    public record ImageProportions(int CountPartsWidth, int CountPartsHeight);
+
+    public class ImageEditingInfo
+    {
+        public int NewWidth { get; set; }
+        public int NewHeight { get; set; }
+        public ImageProportions ImageProportions { get; set; } = null!;
+    }
+
+
+
 }

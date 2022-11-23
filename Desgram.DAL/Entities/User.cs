@@ -6,8 +6,8 @@
         public string Name { get; set; } = null!;
         public string Email { get; set; } = null!;
         public string PasswordHash { get; set; } = null!;
-        public string? FullName { get; set; }
-        public string? Biography { get; set; }
+        public string FullName { get; set; } = string.Empty;
+        public string Biography { get; set; } = string.Empty;
         public DateTimeOffset? BirthDate { get; set; }
         public DateTimeOffset CreatedDate { get; set; }
         public bool IsPrivate { get; set; }

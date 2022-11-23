@@ -24,7 +24,7 @@ namespace Desgram.Api.Infrastructure.Middlewares
             }
             else
             {
-                throw new UnauthorizedException();
+                throw new SessionIsNotActiveException();
             }
 
         }

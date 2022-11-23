@@ -7,7 +7,7 @@ namespace Desgram.Api.Infrastructure.Extensions
 {
     public static class QueryableCommentExtensions
     {
-        public static async Task<Comment> GetCommentById(this IQueryable<Comment> comments,Guid commentId)
+        public static async Task<Comment> GetCommentByIdAsync(this IQueryable<Comment> comments,Guid commentId)
         {
             var comment = await comments.FirstOrDefaultAsync(c => c.Id == commentId && c.DeletedDate == null);
             if (comment == null)

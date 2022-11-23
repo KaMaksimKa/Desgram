@@ -8,7 +8,6 @@ using Desgram.Api.Services.ServiceModel.EmailMessage;
 using Desgram.DAL;
 using Desgram.DAL.Entities;
 using Desgram.SharedKernel;
-using Desgram.SharedKernel.Exceptions;
 using Desgram.SharedKernel.Exceptions.BadRequestExceptions;
 using Desgram.SharedKernel.Exceptions.ForbiddenExceptions;
 using Desgram.SharedKernel.Exceptions.NotFoundExceptions;
@@ -22,17 +21,15 @@ namespace Desgram.Api.Services
         private readonly ApplicationContext _context;
         private readonly IAttachService _attachService;
         private readonly IEmailSender _emailSender;
-        private readonly IUrlService _urlService;
 
 
         public UserService(IMapper mapper,ApplicationContext context,
-            IAttachService attachService,IEmailSender emailSender,IUrlService urlService)
+            IAttachService attachService,IEmailSender emailSender)
         {
             _mapper = mapper;
             _context = context;
             _attachService = attachService;
             _emailSender = emailSender;
-            _urlService = urlService;
         }
 
         public async Task<Guid> CreateUserAsync(CreateUserModel createUser)
@@ -135,7 +132,7 @@ namespace Desgram.Api.Services
                 throw new InvalidPasswordException();
             }
 
-            user.PasswordHash = model.NewPassword;
+            user.PasswordHash = HashHelper.GetHash(model.NewPassword);
 
             await _context.SaveChangesAsync();
 
@@ -238,57 +235,66 @@ namespace Desgram.Api.Services
         public async Task<UserModel> GetUserByIdAsync(Guid userId,Guid requestorId)
         {
 
-            var user = await _context.Users
+            var user = await _context.Users.AsNoTracking()
                 .Where(u => u.Id == userId)
-                .ProjectTo<UserModel>(_mapper.ConfigurationProvider)
+                .ProjectToByRequestorId<UserModel>(_mapper.ConfigurationProvider,requestorId)
                 .FirstOrDefaultAsync();
+
             
             if (user == null)
             {
                 throw new UserNotFoundException();
             }
 
-            if (await _context.BlockingUsers.AnyAsync(b => b.BlockedId == requestorId
-                                                           && b.UserId == userId))
+
+            if (user.HasBlockedViewer)
             {
                 throw new AccessActionException();
             }
 
-            AfterMapUserModel(user);
-          
-            return user;
+
+            return _mapper.Map<UserModel>(user);
         }
 
         public async Task<List<PartialUserModel>> SearchUsersByNameAsync(SearchUsersByNameModel model, Guid requestorId)
         {
-            var users = await _context.Users
+            var users = await _context.Users.AsNoTracking()
                 .Where(u => u.Name.ToLower().Contains(model.SearchUserName.ToLower())
                             && !u.BlockedUsers.Any(ub => ub.BlockedId == requestorId && ub.DeletedDate == null))
                 .Skip(model.Skip).Take(model.Take)
                 .ProjectTo<PartialUserModel>(_mapper.ConfigurationProvider)
                 .ToListAsync();
-            AfterMapPartialUserModel(users);
 
-            return users;
+            return users.Select(u=>_mapper.Map<PartialUserModel>(u)).ToList();
         }
 
         public async Task AddAvatarAsync(MetadataModel model,Guid requestorId)
         {
-            var pathAttach = _attachService.MoveFromTempToAttach(model);
+
 
             var user = await GetUserWithAvatarsByIdAsync(requestorId);
+
 
             var avatar = new Avatar()
             {
                 User = user,
                 Id = Guid.NewGuid(),
-                Name = model.Name,
+                ImageCandidates  = (await _attachService.FromTempToImage(model))
+                .Select(c => new Image()
+                {
+                    CreatedDate = DateTimeOffset.Now.UtcDateTime,
+                    DeletedDate = null,
+                    Name = model.Name,
+                    MimeType = c.MimeType,
+                    Id = c.Id,
+                    Path = c.Path,
+                    Owner = user,
+                    Height = c.Height,
+                    Width = c.Width,
+                })
+                .ToList(),
                 CreatedDate = DateTimeOffset.Now.UtcDateTime,
-                MimeType = model.MimeType,  
-                Owner = user,
-                Path = pathAttach,
-                Size = model.Size,
-                DeletedDate = null
+                DeletedDate = null,
             };
 
             if (user.Avatars.FirstOrDefault(a=>a.DeletedDate==null) is {} oldAvatar)
@@ -313,11 +319,11 @@ namespace Desgram.Api.Services
             return user;
         }
 
-        private async Task<UnconfirmedEmail> GetUnconfirmedEmailById(Guid unconfirmedEmailId, Guid userId)
+        private async Task<UnconfirmedEmail> GetUnconfirmedEmailById(Guid unconfirmedEmailId, Guid requestorId)
         {
             var unconfirmedEmail = await _context.UnconfirmedEmails
                 .FirstOrDefaultAsync(e => e.Id == unconfirmedEmailId
-                                          && e.DeletedDate == null && e.UserId == userId);
+                                          && e.DeletedDate == null && e.UserId == requestorId);
 
             if (unconfirmedEmail == null)
             {
@@ -336,33 +342,6 @@ namespace Desgram.Api.Services
                 throw new UnconfirmedUserNotFoundException();
             }
             return unconfirmedUser;
-        }
-
-        private void AfterMapPartialUserModel(List<PartialUserModel> partialUserModels)
-        {
-            foreach (var partialUserModel in partialUserModels)
-            {
-                if (partialUserModel.Avatar != null)
-                {
-                    partialUserModel.Avatar.Url = _urlService.GetUrlDisplayAttachById(partialUserModel.Avatar.Id);
-                }
-            }
-        }
-
-        private void AfterMapUserModel(List<UserModel> userModels)
-        {
-            foreach (var userModel in userModels)
-            {
-                if (userModel.Avatar != null)
-                {
-                    userModel.Avatar.Url = _urlService.GetUrlDisplayAttachById(userModel.Avatar.Id);
-                }
-            }
-        }
-
-        private void AfterMapUserModel(UserModel userModel)
-        {
-            AfterMapUserModel(new List<UserModel>() { userModel });
         }
 
         private async Task<bool> IsEmailFree(string email)

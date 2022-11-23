@@ -1,4 +1,5 @@
 ﻿using Desgram.Api.Models.Attach;
+using Desgram.Api.Services;
 using Desgram.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -59,6 +60,7 @@ namespace Desgram.Api.Controllers
             var fileStream = new FileStream(attachModel.Path, FileMode.Open);
             return File(fileStream, attachModel.MimeType, fileDownloadName: attachModel.Name);
         }
+
 
     }
 }

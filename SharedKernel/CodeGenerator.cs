@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace Desgram.SharedKernel
 {
+    /// <summary>
+    /// Генератор кодов подтверждения
+    /// </summary>
     public static class CodeGenerator
     {
         public static string GetCode(int length)

@@ -12,9 +12,8 @@ namespace Desgram.Api.Models.Post
         public int? AmountComments { get; set; }
         public bool IsCommentsEnabled { get; set; }
         public DateTimeOffset CreatedDate { get; set; }
-        public List<AttachWithUrlModel> AttachesPost { get; set; } = null!;
+        public List<ImageContentModel> ImageContents { get; set; } = null!;
         public List<string> HashTags { get; set; } = null!;
-        public bool IsLiked { get; set; }
-        public bool IsAuthor { get; set; }
+        public bool HasLiked { get; set; }
     }
 }

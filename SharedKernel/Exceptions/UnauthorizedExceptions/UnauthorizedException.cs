@@ -1,13 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Desgram.SharedKernel.Exceptions.UnauthorizedExceptions
+﻿namespace Desgram.SharedKernel.Exceptions.UnauthorizedExceptions
 {
     public class UnauthorizedException : Exception
     {
+        public virtual string Code => "not_authorize";
         public override string Message => "you are not authorize";
     }
 }

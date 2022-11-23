@@ -3,6 +3,7 @@ using System;
 using Desgram.DAL;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,10 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Desgram.Api.Migrations
 {
     [DbContext(typeof(ApplicationContext))]
-    partial class ApplicationContextModelSnapshot : ModelSnapshot
+    [Migration("20221121130043_ChangePostContent")]
+    partial class ChangePostContent
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -80,6 +82,9 @@ namespace Desgram.Api.Migrations
                     b.Property<string>("Path")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<long>("Size")
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
 
@@ -167,21 +172,20 @@ namespace Desgram.Api.Migrations
                     b.ToTable("HashTags");
                 });
 
-            modelBuilder.Entity("Desgram.DAL.Entities.ImageContent", b =>
+            modelBuilder.Entity("Desgram.DAL.Entities.ImagePostContent", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<DateTimeOffset>("CreatedDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTimeOffset?>("DeletedDate")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<Guid>("PostId")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
-                    b.ToTable("ImageContents");
+                    b.HasIndex("PostId");
+
+                    b.ToTable("PostContents");
                 });
 
             modelBuilder.Entity("Desgram.DAL.Entities.Like", b =>
@@ -418,9 +422,21 @@ namespace Desgram.Api.Migrations
                     b.ToTable("HashTagPost");
                 });
 
+            modelBuilder.Entity("Desgram.DAL.Entities.AttachPost", b =>
+                {
+                    b.HasBaseType("Desgram.DAL.Entities.Attach");
+
+                    b.Property<Guid>("PostId")
+                        .HasColumnType("uuid");
+
+                    b.HasIndex("PostId");
+
+                    b.ToTable("AttachesPosts", (string)null);
+                });
+
             modelBuilder.Entity("Desgram.DAL.Entities.Avatar", b =>
                 {
-                    b.HasBaseType("Desgram.DAL.Entities.ImageContent");
+                    b.HasBaseType("Desgram.DAL.Entities.Attach");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
@@ -430,22 +446,25 @@ namespace Desgram.Api.Migrations
                     b.ToTable("Avatars", (string)null);
                 });
 
-            modelBuilder.Entity("Desgram.DAL.Entities.Image", b =>
+            modelBuilder.Entity("Desgram.DAL.Entities.ImagePostCandidate", b =>
                 {
                     b.HasBaseType("Desgram.DAL.Entities.Attach");
+
+                    b.Property<Guid>("ContentImagePostId")
+                        .HasColumnType("uuid");
 
                     b.Property<int>("Height")
                         .HasColumnType("integer");
 
-                    b.Property<Guid?>("ImageContentId")
+                    b.Property<Guid>("ImagePostContentId")
                         .HasColumnType("uuid");
 
                     b.Property<int>("Width")
                         .HasColumnType("integer");
 
-                    b.HasIndex("ImageContentId");
+                    b.HasIndex("ImagePostContentId");
 
-                    b.ToTable("Images", (string)null);
+                    b.ToTable("ImagePostCandidates", (string)null);
                 });
 
             modelBuilder.Entity("Desgram.DAL.Entities.LikeComment", b =>
@@ -470,18 +489,6 @@ namespace Desgram.Api.Migrations
                     b.HasIndex("PostId");
 
                     b.ToTable("LikePost", (string)null);
-                });
-
-            modelBuilder.Entity("Desgram.DAL.Entities.PostImageContent", b =>
-                {
-                    b.HasBaseType("Desgram.DAL.Entities.ImageContent");
-
-                    b.Property<Guid>("PostId")
-                        .HasColumnType("uuid");
-
-                    b.HasIndex("PostId");
-
-                    b.ToTable("PostImageContents", (string)null);
                 });
 
             modelBuilder.Entity("ApplicationRoleUser", b =>
@@ -546,6 +553,17 @@ namespace Desgram.Api.Migrations
                     b.Navigation("Post");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Desgram.DAL.Entities.ImagePostContent", b =>
+                {
+                    b.HasOne("Desgram.DAL.Entities.Post", "Post")
+                        .WithMany("ImagePostContents")
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Post");
                 });
 
             modelBuilder.Entity("Desgram.DAL.Entities.Like", b =>
@@ -626,9 +644,26 @@ namespace Desgram.Api.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Desgram.DAL.Entities.AttachPost", b =>
+                {
+                    b.HasOne("Desgram.DAL.Entities.Attach", null)
+                        .WithOne()
+                        .HasForeignKey("Desgram.DAL.Entities.AttachPost", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Desgram.DAL.Entities.Post", "Post")
+                        .WithMany()
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Post");
+                });
+
             modelBuilder.Entity("Desgram.DAL.Entities.Avatar", b =>
                 {
-                    b.HasOne("Desgram.DAL.Entities.ImageContent", null)
+                    b.HasOne("Desgram.DAL.Entities.Attach", null)
                         .WithOne()
                         .HasForeignKey("Desgram.DAL.Entities.Avatar", "Id")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -643,17 +678,21 @@ namespace Desgram.Api.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Desgram.DAL.Entities.Image", b =>
+            modelBuilder.Entity("Desgram.DAL.Entities.ImagePostCandidate", b =>
                 {
                     b.HasOne("Desgram.DAL.Entities.Attach", null)
                         .WithOne()
-                        .HasForeignKey("Desgram.DAL.Entities.Image", "Id")
+                        .HasForeignKey("Desgram.DAL.Entities.ImagePostCandidate", "Id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Desgram.DAL.Entities.ImageContent", null)
+                    b.HasOne("Desgram.DAL.Entities.ImagePostContent", "ImagePostContent")
                         .WithMany("ImageCandidates")
-                        .HasForeignKey("ImageContentId");
+                        .HasForeignKey("ImagePostContentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ImagePostContent");
                 });
 
             modelBuilder.Entity("Desgram.DAL.Entities.LikeComment", b =>
@@ -690,29 +729,12 @@ namespace Desgram.Api.Migrations
                     b.Navigation("Post");
                 });
 
-            modelBuilder.Entity("Desgram.DAL.Entities.PostImageContent", b =>
-                {
-                    b.HasOne("Desgram.DAL.Entities.ImageContent", null)
-                        .WithOne()
-                        .HasForeignKey("Desgram.DAL.Entities.PostImageContent", "Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Desgram.DAL.Entities.Post", "Post")
-                        .WithMany("ImagePostContents")
-                        .HasForeignKey("PostId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Post");
-                });
-
             modelBuilder.Entity("Desgram.DAL.Entities.Comment", b =>
                 {
                     b.Navigation("Likes");
                 });
 
-            modelBuilder.Entity("Desgram.DAL.Entities.ImageContent", b =>
+            modelBuilder.Entity("Desgram.DAL.Entities.ImagePostContent", b =>
                 {
                     b.Navigation("ImageCandidates");
                 });
