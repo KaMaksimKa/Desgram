@@ -40,6 +40,8 @@ namespace Desgram.Api.Controllers
             return await _attachService.SaveToTempAsync(file);
         }
 
+        [ApiExplorerSettings(GroupName = "Auth")]
+        [AllowAnonymous]
         [Route("{id}")]
         [HttpGet]
         public async Task<FileResult> DisplayAttachById(Guid id)
@@ -51,6 +53,8 @@ namespace Desgram.Api.Controllers
            
         }
 
+        [ApiExplorerSettings(GroupName = "Auth")]
+        [AllowAnonymous]
         [Route("{id}")]
         [HttpGet]
         public async Task<FileResult> DownloadAttachById(Guid id)

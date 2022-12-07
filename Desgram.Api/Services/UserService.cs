@@ -116,11 +116,29 @@ namespace Desgram.Api.Services
         {
             var user = await _context.Users.GetUserByIdAsync(requestorId);
 
-            user.BirthDate = model.BirthDate;
-            user.Biography = model.Biography;
-            user.FullName = model.FullName;
+            user.Biography = model.Biography?? user.Biography;
+            user.FullName = model.FullName?? user.FullName;
 
             await _context.SaveChangesAsync();
+        }
+
+        public async Task UpdateBirthdayAsync(UpdateBirthdayModel model, Guid requestorId)
+        {
+            var user = await _context.Users.GetUserByIdAsync(requestorId);
+            
+            user.BirthDate = model.Birthday ?? user.BirthDate;
+
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<PersonalInformationModel> GetPersonalInformationAsync(Guid requestorId)
+        {
+            var user = await _context.Users.GetUserByIdAsync(requestorId);
+            return new PersonalInformationModel()
+            {
+                BirthDate = user.BirthDate,
+                Email = user.Email,
+            };
         }
 
         public async Task ChangePasswordAsync(ChangePasswordModel model, Guid requestorId)

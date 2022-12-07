@@ -30,8 +30,4 @@
     <ProjectReference Include="..\SharedKernel\Desgram.SharedKernel.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="attaches\" />
-  </ItemGroup>
-
 </Project>

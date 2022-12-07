@@ -151,8 +151,8 @@ using (var scope = app.Services.CreateScope())
 }
 
 
-if (app.Environment.IsDevelopment())
-{
+/*if (app.Environment.IsDevelopment())
+{*/
     app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
@@ -160,9 +160,9 @@ if (app.Environment.IsDevelopment())
         options.SwaggerEndpoint("Auth/swagger.json", "Auth");
         options.SwaggerEndpoint("Admin/swagger.json", "Admin");
     } );
-}
+/*}*/
 
-app.UseHttpsRedirection();
+/*app.UseHttpsRedirection();*/
 
 app.UseAuthentication();
 

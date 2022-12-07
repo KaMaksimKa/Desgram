@@ -202,6 +202,7 @@ namespace Desgram.Api.Services
                 .Where(u=>u.Id == model.UserId)
                 .SelectMany(u => u.Posts)
                 .Where(p=>p.DeletedDate == null)
+                .OrderByDescending(p=>p.CreatedDate)
                 .Skip(model.Skip).Take(model.Take)
                 .ProjectToByRequestorId<PostModel>(_mapper.ConfigurationProvider,requestorId)
                 .ToListAsync();

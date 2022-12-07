@@ -47,6 +47,10 @@ namespace Desgram.Api.Controllers
         public async Task<UserModel> GetUserById(Guid userId) =>
             await _userService.GetUserByIdAsync(userId, User.GetUserId());
 
+        [HttpGet]
+        public async Task<PersonalInformationModel> GetPersonalInformation() =>
+            await _userService.GetPersonalInformationAsync(User.GetUserId());
+
 
         [HttpGet]
         public async Task<List<PartialUserModel>> SearchUsersByName([FromQuery]SearchUsersByNameModel model) => 
@@ -59,6 +63,10 @@ namespace Desgram.Api.Controllers
         [HttpPost]
         public async Task UpdateProfile(ProfileModel model) =>
            await  _userService.UpdateProfileAsync(model, User.GetUserId());
+
+        [HttpPost]
+        public async Task UpdateBirthday(UpdateBirthdayModel model) =>
+            await _userService.UpdateBirthdayAsync(model, User.GetUserId());
 
         [HttpPost]
         public async Task ChangeUserName(ChangeUserNameModel model) => 

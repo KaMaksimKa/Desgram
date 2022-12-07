@@ -9,6 +9,7 @@ using Desgram.SharedKernel.Exceptions;
 using Desgram.SharedKernel.Exceptions.BadRequestExceptions;
 using Desgram.SharedKernel.Exceptions.NotFoundExceptions;
 using SkiaSharp;
+using System.IO;
 
 
 namespace Desgram.Api.Services
@@ -45,12 +46,10 @@ namespace Desgram.Api.Services
                 fileInfo.Directory.Create();
             }
 
-
-            await using var fileStream = new FileStream(path, FileMode.Create);
+            await using var fileStream = fileInfo.Create();
 
             await file.CopyToAsync(fileStream);
 
-          
 
             return metadata;
         }
@@ -72,8 +71,13 @@ namespace Desgram.Api.Services
         public async Task<List<ImageWithPathModel>> FromTempToImage(MetadataModel model)
         {
 
-            var tempPath = GetTempPathById(model.Id);
-            await using var tempStream = new FileStream(tempPath, FileMode.Open);
+            var tempFileInfo = new FileInfo(GetTempPathById(model.Id));
+            if (!tempFileInfo.Exists)
+            {
+                throw new AttachNotFoundException();
+            }
+
+            await using var tempStream = tempFileInfo.Open(FileMode.Open);
 
             using var skimageFromTemp = SKImage.FromEncodedData(tempStream);
 
@@ -109,8 +113,15 @@ namespace Desgram.Api.Services
                     Path = imagePath
                 });
 
+                var imageFileInfo = new FileInfo(imagePath);
 
-                await using var attachStream = new FileStream(imagePath, FileMode.Create);
+                if (imageFileInfo.Directory is { Exists: false })
+                {
+                    imageFileInfo.Directory.Create();
+                }
+
+
+                await using var attachStream = imageFileInfo.Create();
 
                 await bitmapStream.CopyToAsync(attachStream);
             }
