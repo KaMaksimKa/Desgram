@@ -7,5 +7,7 @@ namespace Desgram.Api.Models.User
         [Required] 
         [EmailAddress] 
         public string NewEmail { get; set; } = null!;
+
+        [Required] public EmailCodeModel EmailCodeModel { get; set; } = null!;
     }
 }

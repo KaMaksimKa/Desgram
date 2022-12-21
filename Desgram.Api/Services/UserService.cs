@@ -1,10 +1,10 @@
 ﻿using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using Desgram.Api.Infrastructure.Extensions;
+using Desgram.Api.Models;
 using Desgram.Api.Models.Attach;
 using Desgram.Api.Models.User;
 using Desgram.Api.Services.Interfaces;
-using Desgram.Api.Services.ServiceModel.EmailMessage;
 using Desgram.DAL;
 using Desgram.DAL.Entities;
 using Desgram.SharedKernel;
@@ -20,94 +20,62 @@ namespace Desgram.Api.Services
         private readonly IMapper _mapper;
         private readonly ApplicationContext _context;
         private readonly IAttachService _attachService;
-        private readonly IEmailSender _emailSender;
+        private readonly IConfirmService _confirmService;
 
 
         public UserService(IMapper mapper,ApplicationContext context,
-            IAttachService attachService,IEmailSender emailSender)
+            IAttachService attachService,IConfirmService confirmService)
         {
             _mapper = mapper;
             _context = context;
             _attachService = attachService;
-            _emailSender = emailSender;
+            _confirmService = confirmService;
         }
 
-        public async Task<Guid> CreateUserAsync(CreateUserModel createUser)
+        public async Task TryCreateUserAsync(TryCreateUserModel createUser)
         {
-
+            BadRequestException badRequestException = new BadRequestException();
             if (!(await IsUserNameFree(createUser.UserName)))
             {
-                throw new UserNameIsBusyException();
+                badRequestException.Errors.Add(nameof(createUser.UserName),new List<string>()
+                {
+                    $"Имя пользователя {createUser.UserName} занято."
+                });
             }
 
             if (!(await IsEmailFree(createUser.Email)))
             {
-                throw new EmailIsBusyException();
+                badRequestException.Errors.Add(nameof(createUser.UserName), new List<string>()
+                {
+                    $"email {createUser.Email} занят."
+                });
+
             }
 
-            var code = CodeGenerator.GetCode(6);
-
-            var unconfirmedUser = new UnconfirmedUser
+            if (badRequestException.Errors.Count != 0)
             {
-                Id = Guid.NewGuid(),
-                CodeHash = HashHelper.GetHash(code),
-                ExpiredDate = DateTimeOffset.Now.UtcDateTime.AddMinutes(5),
-                Email = createUser.Email,
-                Name = createUser.UserName,
-                PasswordHash = HashHelper.GetHash(createUser.Password)
-            };
-
-            await _context.UnconfirmedUsers.AddAsync(unconfirmedUser);
-            await _context.SaveChangesAsync();
-
-            return unconfirmedUser.Id;
+                throw badRequestException;
+            }
         }
 
-        public async Task ConfirmUserAsync(ConfirmUserModel model)
+        public async Task<GuidIdModel> SendSingUpCodeAsync(string email)
         {
-            var unconfirmedUser = await GetUnconfirmedUserById(model.UnconfirmedUserId);
+            return await _confirmService.SendEmailCodeAsync(email, TypesEmailCodeMessage.SingUpMessage);
+        }
 
-            if (DateTimeOffset.Now.UtcDateTime > unconfirmedUser.ExpiredDate)
-            {
-                throw new ConfirmCodeHasExpiredException();
-            }
+        public async Task CreateUserAsync(CreateUserModel model)
+        {
+            await TryCreateUserAsync(model.TryCreateUserModel);
+            await _confirmService.ConfirmEmailCodeAsync(model.EmailCodeModel);
 
-            if (!HashHelper.Verify(model.ConfirmCode, unconfirmedUser.CodeHash))
-            {
-                throw new InvalidConfirmCodeException();
-            }
-
-            unconfirmedUser.DeletedDate = DateTimeOffset.Now.UtcDateTime;
-
-            var user = new User()
+            await _context.Users.AddAsync(new User()
             {
                 Id = Guid.NewGuid(),
-                Name = unconfirmedUser.Name,
-                Email = unconfirmedUser.Email,
-                PasswordHash = unconfirmedUser.PasswordHash,
+                Name = model.TryCreateUserModel.UserName,
+                Email = model.TryCreateUserModel.Email,
+                PasswordHash = HashHelper.GetHash(model.TryCreateUserModel.Password),
                 CreatedDate = DateTimeOffset.Now.UtcDateTime
-            };
-
-
-            await _context.Users.AddAsync(user);
-            await _context.SaveChangesAsync();
-
-        }
-
-        public async Task SendSingUpCodeAsync(Guid unconfirmedUserId)
-        {
-            var unconfirmedUser = await GetUnconfirmedUserById(unconfirmedUserId);
-
-            if (DateTimeOffset.Now.UtcDateTime > unconfirmedUser.ExpiredDate)
-            {
-                throw new ConfirmCodeHasExpiredException();
-            }
-
-            var code = CodeGenerator.GetCode(6);
-
-            await _emailSender.SendEmailAsync(new SingUpCodeMessage(unconfirmedUser.Email, code));
-
-            unconfirmedUser.CodeHash = HashHelper.GetHash(code);
+            });
 
             await _context.SaveChangesAsync();
         }
@@ -125,8 +93,11 @@ namespace Desgram.Api.Services
         public async Task UpdateBirthdayAsync(UpdateBirthdayModel model, Guid requestorId)
         {
             var user = await _context.Users.GetUserByIdAsync(requestorId);
-            
-            user.BirthDate = model.Birthday ?? user.BirthDate;
+
+            if (model.Birthday != null)
+            {
+                user.BirthDate = model.Birthday.Value;
+            }
 
             await _context.SaveChangesAsync();
         }
@@ -170,75 +141,46 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task<Guid> ChangeEmailAsync(ChangeEmailModel model, Guid requestorId)
+        public async Task ChangeEmailAsync(ChangeEmailModel model, Guid requestorId)
         {
+            await TryChangeEmailAsync(model.NewEmail,requestorId);
+            await _confirmService.ConfirmEmailCodeAsync(model.EmailCodeModel);
             var user = await _context.Users.GetUserByIdAsync(requestorId);
 
-            if (!(await IsEmailFree(model.NewEmail)))
-            {
-                throw new EmailIsBusyException();
-            }
+            user.Email = model.NewEmail;
 
-            var code = CodeGenerator.GetCode(6);
-
-            var unconfirmedEmail = new UnconfirmedEmail()
-            {
-                Id = Guid.NewGuid(),
-                CodeHash = HashHelper.GetHash(code),
-                Email = model.NewEmail,
-                DeletedDate = null,
-                ExpiredDate = DateTimeOffset.Now.UtcDateTime.AddMinutes(5),
-                User = user
-            };
-
-            await _context.UnconfirmedEmails.AddAsync(unconfirmedEmail);
             await _context.SaveChangesAsync();
-
-            await SendChangeEmailCodeAsync(unconfirmedEmail.Id, requestorId);
-
-            return unconfirmedEmail.Id;
         }
 
-        public async Task ConfirmEmailAsync(ConfirmEmailModel model, Guid userId)
+        public async Task TryChangeEmailAsync(string newEmail, Guid requestorId)
         {
-            var user = await _context.Users.GetUserByIdAsync(userId);
-
-            var unconfirmedEmail = await GetUnconfirmedEmailById(model.UnconfirmedEmailId, userId);
-
-            if (DateTimeOffset.Now.UtcDateTime > unconfirmedEmail.ExpiredDate)
+            var user = await _context.Users.GetUserByIdAsync(requestorId);
+            if (user.Email == newEmail)
             {
-                throw new ConfirmCodeHasExpiredException();
+                throw new BadRequestException(new Dictionary<string, List<string>>()
+                {
+                    [nameof(newEmail)] = new List<string>()
+                    {
+                        "Нельзя сменить e-mail на текущий"
+                    }
+                });
             }
 
-            if (!HashHelper.Verify(model.ConfirmCode, unconfirmedEmail.CodeHash))
+            if (!(await IsEmailFree(newEmail)))
             {
-                throw new InvalidConfirmCodeException();
+                throw new BadRequestException(new Dictionary<string, List<string>>()
+                {
+                    [nameof(newEmail)] = new List<string>()
+                    {
+                        $"email {newEmail} занят."
+                    }
+                });
             }
-
-            unconfirmedEmail.DeletedDate = DateTimeOffset.Now.UtcDateTime;
-
-            user.Email = unconfirmedEmail.Email;
-
-            await _context.SaveChangesAsync();
-
         }
 
-        public async Task SendChangeEmailCodeAsync(Guid unconfirmedEmailId, Guid requestorId)
+        public async Task<GuidIdModel> SendChangeEmailCodeAsync(string email, Guid requestorId)
         {
-            var unconfirmedEmail = await GetUnconfirmedEmailById(unconfirmedEmailId, requestorId);
-
-            if (unconfirmedEmail.ExpiredDate < DateTimeOffset.Now.UtcDateTime)
-            {
-                throw new ConfirmCodeHasExpiredException();
-            }
-
-            var code = CodeGenerator.GetCode(6);
-
-            await _emailSender.SendEmailAsync(new ChangeEmailCodeMessage(unconfirmedEmail.Email, code));
-
-            unconfirmedEmail.CodeHash = HashHelper.GetHash(code);
-
-            await _context.SaveChangesAsync();
+            return await _confirmService.SendEmailCodeAsync(email, TypesEmailCodeMessage.ChangeEmailMessage);
         }
 
         public async Task ChangeAccountAvailabilityAsync(bool isPrivate, Guid requestorId)
@@ -335,31 +277,6 @@ namespace Desgram.Api.Services
             }
 
             return user;
-        }
-
-        private async Task<UnconfirmedEmail> GetUnconfirmedEmailById(Guid unconfirmedEmailId, Guid requestorId)
-        {
-            var unconfirmedEmail = await _context.UnconfirmedEmails
-                .FirstOrDefaultAsync(e => e.Id == unconfirmedEmailId
-                                          && e.DeletedDate == null && e.UserId == requestorId);
-
-            if (unconfirmedEmail == null)
-            {
-                throw new UnconfirmedEmailNotFoundException();
-            }
-            return unconfirmedEmail;
-        }
-
-        private async Task<UnconfirmedUser> GetUnconfirmedUserById(Guid unconfirmedUserId)
-        {
-            var unconfirmedUser = await _context.UnconfirmedUsers
-                .FirstOrDefaultAsync(u => u.Id == unconfirmedUserId && u.DeletedDate == null);
-
-            if (unconfirmedUser == null)
-            {
-                throw new UnconfirmedUserNotFoundException();
-            }
-            return unconfirmedUser;
         }
 
         private async Task<bool> IsEmailFree(string email)

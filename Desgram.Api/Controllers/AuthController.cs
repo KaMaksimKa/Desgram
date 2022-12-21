@@ -33,13 +33,13 @@ namespace Desgram.Api.Controllers
             return await _authService.GetTokenByRefreshTokenAsync(model.RefreshToken);
         }
 
-        [ApiExplorerSettings(GroupName = "Api")]
+        /*[ApiExplorerSettings(GroupName = "Api")]
         [HttpPost]
         public async Task Logout()
         {
             var sessionId = User.GetSessionId();
             await _authService.LogoutBySessionIdAsync(sessionId);
-        }
+        }*/
 
         [ApiExplorerSettings(GroupName = "Api")]
         [HttpPost]

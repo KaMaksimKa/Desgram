@@ -1,4 +1,5 @@
 ﻿using Desgram.Api.Infrastructure.Extensions;
+using Desgram.Api.Models;
 using Desgram.Api.Models.Comment;
 using Desgram.Api.Models.Post;
 using Desgram.Api.Services.Interfaces;
@@ -27,12 +28,11 @@ namespace Desgram.Api.Controllers
 
 
         [HttpGet]
-        public async Task<List<PostModel>> GetPosts([FromQuery]PostRequestModel model)
+        public async Task<List<PostModel>> GetPosts([FromQuery] SkipTakeModel model)
         {
             return await _postService.GetAllPostsAsync(model,User.GetUserId());
         }
 
-        [Route("{hashTag}")]
         [HttpGet]
         public async Task<List<PostModel>> GetPostsByHashTag([FromQuery]PostByHashtagRequestModel model)
         {
@@ -41,7 +41,7 @@ namespace Desgram.Api.Controllers
 
 
         [HttpGet]
-        public async Task<List<PostModel>> GetSubscriptionsFeed([FromQuery]PostRequestModel model)
+        public async Task<List<PostModel>> GetSubscriptionsFeed([FromQuery] SkipTakeModel model)
         {
             return await _postService.GetSubscriptionsFeedAsync(model,User.GetUserId());
         }

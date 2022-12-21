@@ -4,24 +4,9 @@ namespace Desgram.Api.Models.User
 {
     public class CreateUserModel
     {
+        [Required] public TryCreateUserModel TryCreateUserModel { get; set; } = null!;
 
-        [Required]
-        [RegularExpression(@"[A-Za-z0-9._]*")]
-        public string UserName { get; init; } = null!;
-
-        [Required]
-        [EmailAddress]
-        public string Email { get; init; } = null!;
-
-        [Required]
-        [MinLength(6)]
-        public string Password { get; init; } = null!;
-
-        [Required]
-        [Compare(nameof(Password))]
-        public string RetryPassword { get; init; } = null!;
-
-
+        [Required] public EmailCodeModel EmailCodeModel { get; set; } = null!;
 
     }
 }

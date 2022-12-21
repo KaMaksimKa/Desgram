@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using Desgram.Api.Infrastructure.Extensions;
+using Desgram.Api.Models;
 using Desgram.Api.Models.Attach;
 using Desgram.Api.Models.User;
 using Desgram.Api.Services.Interfaces;
@@ -24,24 +25,37 @@ namespace Desgram.Api.Controllers
         [ApiExplorerSettings(GroupName = "Auth")]
         [AllowAnonymous]
         [HttpPost]
-        public async Task<Guid> CreateUser(CreateUserModel createUserDto) => 
-            await _userService.CreateUserAsync(createUserDto);
+        public async Task TryCreateUser(TryCreateUserModel createUserDto) =>
+            await _userService.TryCreateUserAsync(createUserDto);
 
         [ApiExplorerSettings(GroupName = "Auth")]
         [AllowAnonymous]
         [HttpPost]
-        public async Task ConfirmUser(ConfirmUserModel model) => 
-            await _userService.ConfirmUserAsync(model);
+        public async Task CreateUser(CreateUserModel model) =>
+            await _userService.CreateUserAsync(model);
 
         [ApiExplorerSettings(GroupName = "Auth")]
         [AllowAnonymous]
         [HttpPost]
-        public async Task SendSingUpCode(Guid unconfirmedUserId) => 
-            await _userService.SendSingUpCodeAsync(unconfirmedUserId);
+        public async Task<GuidIdModel> SendSingUpCode(string email) =>
+            await _userService.SendSingUpCodeAsync(email);
+
+
+
+
+
+
 
         [HttpGet]
         public async Task<UserModel> GetCurrentUser() =>
             await _userService.GetUserByIdAsync(User.GetUserId(), User.GetUserId());
+
+        [HttpGet]
+        public GuidIdModel GetCurrentUserId() =>
+            new GuidIdModel()
+            {
+                Id = User.GetUserId()
+            };
 
         [HttpGet]
         public async Task<UserModel> GetUserById(Guid userId) =>
@@ -81,16 +95,18 @@ namespace Desgram.Api.Controllers
             await _userService.ChangeAccountAvailabilityAsync(isPrivate, User.GetUserId());
 
         [HttpPost]
-        public async Task<Guid> ChangeEmail(ChangeEmailModel model) =>
+        public async Task TryChangeEmailAsync(string newEmail) =>
+            await _userService.TryChangeEmailAsync(newEmail, User.GetUserId());
+
+        [HttpPost]
+        public async Task SendChangeEmailCode(string newEmail) =>
+            await _userService.SendChangeEmailCodeAsync(newEmail, User.GetUserId());
+
+        [HttpPost]
+        public async Task ChangeEmail(ChangeEmailModel model) =>
             await _userService.ChangeEmailAsync(model, User.GetUserId());
 
-        [HttpPost]
-        public async Task ConfirmEmail(ConfirmEmailModel model) =>
-            await _userService.ConfirmEmailAsync(model, User.GetUserId());
-
-        [HttpPost]
-        public async Task SendChangeEmailCode(Guid unconfirmedEmailId) =>
-            await _userService.SendChangeEmailCodeAsync(unconfirmedEmailId, User.GetUserId());
+        
 
     }
 }

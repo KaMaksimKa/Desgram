@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Desgram.Api.Infrastructure.Extensions;
+using Desgram.Api.Models;
 using Desgram.Api.Models.Post;
 using Desgram.Api.Services.Interfaces;
 using Desgram.DAL;
@@ -147,11 +148,12 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task<List<PostModel>> GetAllPostsAsync(PostRequestModel model, Guid requestorId)
+        public async Task<List<PostModel>> GetAllPostsAsync(SkipTakeModel model, Guid requestorId)
         {
             var posts = await _context.Posts.AsNoTracking()
                 .Where(p => p.DeletedDate == null && !p.User.IsPrivate
                             && !p.User.BlockedUsers.Any(u => u.BlockedId == requestorId && u.DeletedDate == null))
+                .OrderByDescending(p => p.CreatedDate)
                 .Skip(model.Skip).Take(model.Take)
                 .ProjectToByRequestorId<PostModel>(_mapper.ConfigurationProvider, requestorId)
                 .ToListAsync();
@@ -165,6 +167,7 @@ namespace Desgram.Api.Services
                 .Where(p => p.DeletedDate == null && !p.User.IsPrivate 
                             && !p.User.BlockedUsers.Any(u=>u.BlockedId == requestorId && u.DeletedDate == null))
                 .Where(p => p.HashTags.Any(tag => tag.Title == model.Hashtag) )
+                .OrderByDescending(p => p.CreatedDate)
                 .Skip(model.Skip).Take(model.Take)
                 .ProjectToByRequestorId<PostModel>(_mapper.ConfigurationProvider, requestorId)
                 .ToListAsync();
@@ -172,7 +175,7 @@ namespace Desgram.Api.Services
             return posts.Select(p => _mapper.Map<PostModel>(p)).ToList();
         }
 
-        public async Task<List<PostModel>> GetSubscriptionsFeedAsync(PostRequestModel model,Guid requestorId)
+        public async Task<List<PostModel>> GetSubscriptionsFeedAsync(SkipTakeModel model,Guid requestorId)
         {
 
             var posts = await _context.UserSubscriptions.AsNoTracking()
@@ -180,6 +183,7 @@ namespace Desgram.Api.Services
                 .Select(s=>s.ContentMaker)
                 .SelectMany(u=>u.Posts)
                 .Where(p=>p.DeletedDate == null)
+                .OrderByDescending(p => p.CreatedDate)
                 .Skip(model.Skip).Take(model.Take)
                 .ProjectToByRequestorId<PostModel>(_mapper.ConfigurationProvider, requestorId)
                 .ToListAsync();
@@ -191,9 +195,10 @@ namespace Desgram.Api.Services
         {
             var contentMaker = await _context.Users.GetUserByIdAsync(model.UserId);
 
-            if (contentMaker.IsPrivate &&
+            if ((contentMaker.IsPrivate &&
                !(await _context.UserSubscriptions.AnyAsync(s =>s.DeletedDate == null && s.IsApproved
-               && (s.ContentMakerId == contentMaker.Id && s.FollowerId == requestorId)) || contentMaker.Id == requestorId))
+               && (s.ContentMakerId == contentMaker.Id && s.FollowerId == requestorId)) || contentMaker.Id == requestorId)) ||
+                await _context.BlockingUsers.AnyAsync(b=>b.DeletedDate == null && b.UserId ==model.UserId && b.BlockedId == requestorId))
             {
                 throw new AccessActionException();
             }

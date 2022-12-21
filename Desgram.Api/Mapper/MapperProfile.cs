@@ -15,7 +15,7 @@ namespace Desgram.Api.Mapper
         public static Guid RequestorId { get; set; }
         public MapperProfile()
         {
-            CreateMap<CreateUserModel, User>()
+            CreateMap<TryCreateUserModel, User>()
                 .ForMember(d => d.Id, m => m.MapFrom(s => Guid.NewGuid()))
                 .ForMember(d => d.PasswordHash, m => m.MapFrom(s => HashHelper.GetHash(s.Password)))
                 .ForMember(d => d.CreatedDate, m => m.MapFrom(s => DateTimeOffset.Now.UtcDateTime))
@@ -68,8 +68,6 @@ namespace Desgram.Api.Mapper
                 .ForMember(d => d.User, m => m.MapFrom(s => s.User))
                 .ForMember(d => d.ImageContents, m => m.MapFrom(
                         s => s.ImagePostContents))
-                .ForMember(d => d.HashTags, m => m.MapFrom(
-                        s => s.HashTags.Select(h => h.Title).ToList()))
                 .ForMember(d => d.AmountComments, m => m.MapFrom<int?>(
                     s => !s.IsCommentsEnabled ? null : s.Comments.Count(c => c.DeletedDate == null)))
                 .ForMember(d => d.AmountLikes, m => m.MapFrom<int?>(

@@ -24,6 +24,7 @@ namespace Desgram.DAL
         public DbSet<PostImageContent> PostImageContents { get; init; } = null!;
         public DbSet<Image> Images { get; init; } = null!;
         public DbSet<ImageContent> ImageContents { get; init; } = null!;
+        public DbSet<EmailCode> EmailCodes { get; init; } = null!;
 
         public ApplicationContext(DbContextOptions<ApplicationContext> options) :base(options) 
         {

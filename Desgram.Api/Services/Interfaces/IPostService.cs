@@ -1,4 +1,5 @@
-﻿using Desgram.Api.Models.Post;
+﻿using Desgram.Api.Models;
+using Desgram.Api.Models.Post;
 
 namespace Desgram.Api.Services.Interfaces
 {
@@ -22,9 +23,9 @@ namespace Desgram.Api.Services.Interfaces
         /// <param name="requestorId"></param>
         /// <returns></returns>
         public Task ChangeIsCommentsEnabledAsync(ChangeIsCommentsEnabledModel model, Guid requestorId);
-        public Task<List<PostModel>> GetAllPostsAsync(PostRequestModel model, Guid requestorId);
+        public Task<List<PostModel>> GetAllPostsAsync(SkipTakeModel model, Guid requestorId);
         public Task<List<PostModel>> GetPostByHashTagAsync(PostByHashtagRequestModel model,Guid requestorId);
-        public Task<List<PostModel>> GetSubscriptionsFeedAsync(PostRequestModel model,Guid requestorId);
+        public Task<List<PostModel>> GetSubscriptionsFeedAsync(SkipTakeModel model,Guid requestorId);
         public Task<List<PostModel>> GetUserPostsAsync(PostByUserIdRequestModel model, Guid requestorId);
     }
 }

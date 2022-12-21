@@ -13,7 +13,6 @@ namespace Desgram.Api.Models.Post
         public bool IsCommentsEnabled { get; set; }
         public DateTimeOffset CreatedDate { get; set; }
         public List<ImageContentModel> ImageContents { get; set; } = null!;
-        public List<string> HashTags { get; set; } = null!;
         public bool HasLiked { get; set; }
     }
 }

@@ -94,6 +94,7 @@ builder.Services.AddScoped<IUrlService,UrlService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IImageEditor, ImageEditor>();
 builder.Services.AddScoped<IBlockingService, BlockingService>();
+builder.Services.AddScoped<IConfirmService, ConfirmService>();
 builder.Services.AddScoped<AttachModelMapperAction>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>

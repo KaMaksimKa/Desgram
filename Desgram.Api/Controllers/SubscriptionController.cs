@@ -50,7 +50,7 @@ namespace Desgram.Api.Controllers
             await _subscriptionService.AcceptSubscriptionAsync(followerId,User.GetUserId());
         }
 
-        [HttpGet]
+        /*[HttpGet]
         public Task<List<PartialUserModel>> GetFollowing([FromQuery]SkipTakeModel model)
         {
             var userId = User.GetUserId();
@@ -60,7 +60,7 @@ namespace Desgram.Api.Controllers
                 UserId = userId,
                 Take = model.Take,
             },userId);
-        }
+        }*/
 
         [HttpGet]
         public Task<List<PartialUserModel>> GetUserFollowing([FromQuery]UserFollowingRequestModel model)
@@ -68,7 +68,7 @@ namespace Desgram.Api.Controllers
             return _subscriptionService.GetUserFollowingAsync(model, User.GetUserId());
         }
 
-        [HttpGet]
+        /*[HttpGet]
         public Task<List<PartialUserModel>> GetFollowers([FromQuery]SkipTakeModel model)
         {
             var userId = User.GetUserId();
@@ -78,7 +78,7 @@ namespace Desgram.Api.Controllers
                 UserId = userId,
                 Take = model.Take,
             }, userId);
-        }
+        }*/
 
         [HttpGet]
         public Task<List<PartialUserModel>> GetUserFollowers([FromQuery]UserFollowersRequestModel model)
