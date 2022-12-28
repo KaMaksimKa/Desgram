@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using Desgram.Api.Infrastructure.Extensions;
 using Desgram.Api.Models;
 using Desgram.Api.Models.Post;
@@ -92,7 +93,7 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task UpdatePostAsync(UpdatePostModel model, Guid requestorId)
+        public async Task EditPostAsync(UpdatePostModel model, Guid requestorId)
         {
             var post = await GetPostWithTagsByIdAsync(model.PostId);
 
@@ -146,6 +147,24 @@ namespace Desgram.Api.Services
             post.IsCommentsEnabled = model.IsCommentsEnabled;
 
             await _context.SaveChangesAsync();
+        }
+
+        public async Task<PostModel> GetPostByIdAsync(Guid postId, Guid requestorId)
+        {
+            var post = await _context.Posts.AsNoTracking()
+                .Where(p => p.DeletedDate == null && p.Id == postId && (!p.User.IsPrivate || p.User.Followers.Any(u =>
+                                                      u.FollowerId == requestorId && u.DeletedDate == null))
+                                                  && !p.User.BlockedUsers.Any(u =>
+                                                      u.BlockedId == requestorId && u.DeletedDate == null))
+                .ProjectTo<PostModel>(_mapper.ConfigurationProvider)
+                .FirstOrDefaultAsync();
+
+            if (post == null)
+            {
+                throw new PostNotFoundException();
+            }
+
+            return _mapper.Map<PostModel>(post);
         }
 
         public async Task<List<PostModel>> GetAllPostsAsync(SkipTakeModel model, Guid requestorId)
@@ -213,6 +232,15 @@ namespace Desgram.Api.Services
                 .ToListAsync();
 
             return posts.Select(p=>_mapper.Map<PostModel>(p)).ToList();
+        }
+
+        public async Task<List<HashtagModel>> SearchHashtagsAsync(SearchHashtagsModel model, Guid requestorId)
+        {
+            return await _context.HashTags.Where(h => h.Title.Contains(model.SearchString))
+                .ProjectTo<HashtagModel>(_mapper.ConfigurationProvider)
+                .OrderByDescending(h => h.AmountPosts)
+                .Skip(model.Skip).Take(model.Take)
+                .ToListAsync();
         }
 
         private async Task<List<HashTag>> GetHashTags(string descriptionPost)

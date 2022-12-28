@@ -23,6 +23,7 @@ namespace Desgram.Api.Controllers
         [HttpPost]
         public async Task<TokenModel> Token(TokenRequestModel model)
         {
+
             return await _authService.GetTokenByCredentialsAsync(model.Login, model.Password);
         }
 

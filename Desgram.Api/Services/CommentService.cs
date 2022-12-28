@@ -78,6 +78,7 @@ namespace Desgram.Api.Services
         {
             var comments = await _context.Comments.AsNoTracking()
                 .Where(c => c.PostId == model.PostId && c.DeletedDate == null)
+                .OrderByDescending(p => p.CreatedDate)
                 .Skip(model.Skip).Take(model.Take)
                 .ProjectToByRequestorId<CommentModel>(_mapper.ConfigurationProvider,requestorId)
                 .ToListAsync();

@@ -14,5 +14,6 @@ namespace Desgram.Api.Models.Post
         public DateTimeOffset CreatedDate { get; set; }
         public List<ImageContentModel> ImageContents { get; set; } = null!;
         public bool HasLiked { get; set; }
+        public bool HasEdit { get; set; }
     }
 }

@@ -72,8 +72,9 @@ namespace Desgram.Api.Mapper
                     s => !s.IsCommentsEnabled ? null : s.Comments.Count(c => c.DeletedDate == null)))
                 .ForMember(d => d.AmountLikes, m => m.MapFrom<int?>(
                     s => !s.IsLikesVisible ? null : s.Likes.Count(l => l.DeletedDate == null)))
-                .ForMember(d => d.HasLiked, m => m.MapFrom(s => s.Likes.Any(l => l.DeletedDate == null && l.UserId == RequestorId)));
-                ;
+                .ForMember(d => d.HasLiked, m => m.MapFrom(s => s.Likes.Any(l => l.DeletedDate == null && l.UserId == RequestorId)))
+                .ForMember(d => d.HasEdit, m => m.MapFrom(s => s.UpdatedDate != null));
+                
             CreateMap<PostModel, PostModel>();
 
             CreateMap<Comment, CommentModel>()
@@ -86,6 +87,9 @@ namespace Desgram.Api.Mapper
 
             CreateMap<ApplicationRole, ApplicationRoleModel>();
 
+            CreateMap<HashTag,HashtagModel>()
+                .ForMember(d =>d.Hashtag,m=>m.MapFrom(s=>s.Title))
+                .ForMember(d=>d.AmountPosts,m=>m.MapFrom(s=>s.Posts.Count(p => p.DeletedDate==null)));
 
 
         }

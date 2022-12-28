@@ -34,9 +34,23 @@ namespace Desgram.Api.Controllers
         }
 
         [HttpGet]
+        public async Task<PostModel> GetPostById(Guid postId)
+        {
+            return await _postService.GetPostByIdAsync(postId, User.GetUserId());
+        }
+        
+
+
+            [HttpGet]
         public async Task<List<PostModel>> GetPostsByHashTag([FromQuery]PostByHashtagRequestModel model)
         {
             return await _postService.GetPostByHashTagAsync(model,User.GetUserId());
+        }
+
+        [HttpGet]
+        public async Task<List<HashtagModel>> SearchHashtags([FromQuery] SearchHashtagsModel model)
+        {
+            return await _postService.SearchHashtagsAsync(model, User.GetUserId());
         }
 
 
@@ -71,7 +85,7 @@ namespace Desgram.Api.Controllers
         public async Task UpdatePost(UpdatePostModel model)
         {
             var userId = User.GetUserId();
-            await _postService.UpdatePostAsync(model, userId);
+            await _postService.EditPostAsync(model, userId);
         }
 
         [HttpPost]
@@ -118,7 +132,7 @@ namespace Desgram.Api.Controllers
 
         [Route("{postId}")]
         [HttpPost]
-        public async Task<int?> AddLikePost(Guid postId)
+        public async Task<AmountLikesModel> AddLikePost(Guid postId)
         {
             var userId = User.GetUserId();
             return await _likeService.AddLikePostAsync(postId,userId);
@@ -126,7 +140,7 @@ namespace Desgram.Api.Controllers
 
         [Route("{postId}")]
         [HttpPost]
-        public async Task<int?> DeleteLikePost(Guid postId)
+        public async Task<AmountLikesModel> DeleteLikePost(Guid postId)
         {
             var userId = User.GetUserId();
             return await _likeService.DeleteLikePostAsync(postId, userId);

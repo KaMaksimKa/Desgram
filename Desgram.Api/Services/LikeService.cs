@@ -1,4 +1,5 @@
 ﻿using Desgram.Api.Infrastructure.Extensions;
+using Desgram.Api.Models.Post;
 using Desgram.Api.Services.Interfaces;
 using Desgram.DAL;
 using Desgram.DAL.Entities;
@@ -19,7 +20,7 @@ namespace Desgram.Api.Services
             _context = context;
         }
 
-        public async Task<int?> AddLikePostAsync(Guid postId, Guid requestorId)
+        public async Task<AmountLikesModel> AddLikePostAsync(Guid postId, Guid requestorId)
         {
             var post = await _context.Posts.GetPostByIdAsync(postId);
 
@@ -43,11 +44,14 @@ namespace Desgram.Api.Services
 
             await _context.SaveChangesAsync();
 
-            return !post.IsLikesVisible?null:
-                await _context.LikesPosts.Where(l => l.DeletedDate == null && l.PostId == postId).CountAsync();
+            return new AmountLikesModel()
+            {
+                AmountLikes = !post.IsLikesVisible ? null :
+                    await _context.LikesPosts.Where(l => l.DeletedDate == null && l.PostId == postId).CountAsync()
+            };
         }
 
-        public async Task<int?> DeleteLikePostAsync(Guid postId, Guid requestorId)
+        public async Task<AmountLikesModel> DeleteLikePostAsync(Guid postId, Guid requestorId)
         {
             var post = await _context.Posts.GetPostByIdAsync(postId);
             var like = await GetLikePostAsync(postId, requestorId);
@@ -61,8 +65,11 @@ namespace Desgram.Api.Services
 
             await _context.SaveChangesAsync();
 
-            return !post.IsLikesVisible ? null : 
-                await _context.LikesPosts.Where(l => l.DeletedDate == null && l.PostId == postId).CountAsync();
+            return new AmountLikesModel()
+            {
+                AmountLikes = !post.IsLikesVisible ? null :
+                    await _context.LikesPosts.Where(l => l.DeletedDate == null && l.PostId == postId).CountAsync()
+            };
         }
 
         public async Task<int> AddLikeCommentAsync(Guid commentId, Guid requestorId)

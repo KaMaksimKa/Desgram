@@ -22,6 +22,7 @@ builder.Services.Configure<AuthConfig>(authSection);
 
 builder.Services.Configure<EmailConfig>(builder.Configuration.GetSection(EmailConfig.Position));
 builder.Services.Configure<AdminUserConfig>(builder.Configuration.GetSection(AdminUserConfig.Position));
+builder.Services.Configure<PushConfig>(builder.Configuration.GetSection(PushConfig.Position));
 
 
 builder.Services.AddControllers();
@@ -96,6 +97,8 @@ builder.Services.AddScoped<IImageEditor, ImageEditor>();
 builder.Services.AddScoped<IBlockingService, BlockingService>();
 builder.Services.AddScoped<IConfirmService, ConfirmService>();
 builder.Services.AddScoped<AttachModelMapperAction>();
+builder.Services.AddScoped<IPushService, PushService>();
+builder.Services.AddScoped<IGooglePushService, GooglePushService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
     {

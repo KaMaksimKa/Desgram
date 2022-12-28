@@ -75,8 +75,26 @@ namespace Desgram.Api.Services
                 IssuerSigningKey = _authConfig.SymmetricSecurityKey
             };
 
-            var principal =
-                new JwtSecurityTokenHandler().ValidateToken(refreshToken, validationParam, out var securityToken);
+            ClaimsPrincipal principal;
+            SecurityToken securityToken;
+            try
+            {
+                principal =
+                    new JwtSecurityTokenHandler().ValidateToken(refreshToken, validationParam, out securityToken);
+            }
+            catch 
+            {
+                var jwtToken = new JwtSecurityTokenHandler().ReadJwtToken(refreshToken);
+                var refreshIdStr = jwtToken.Claims.FirstOrDefault(c=>c.Type == AppClaimTypes.RefreshTokenId)?.Value;
+                if (Guid.TryParse(refreshIdStr, out var refreshId))
+                {
+                    var userSession = await GetSessionByRefreshIdAsync(refreshId);
+                    userSession.PushToken = null;
+                    await _context.SaveChangesAsync();
+                }
+                throw new InvalidRefreshTokenException();
+            }
+            
 
             if (securityToken is not JwtSecurityToken jwToken ||
                 !jwToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
@@ -104,7 +122,7 @@ namespace Desgram.Api.Services
 
         public async Task LogoutBySessionIdAsync(Guid sessionId)
         {
-            var session = await GetSessionById(sessionId);
+            var session = await _context.UserSessions.GetSessionById(sessionId);
 
             session.IsActive = false;
             await _context.SaveChangesAsync();
@@ -200,16 +218,7 @@ namespace Desgram.Api.Services
             return session;
         }
 
-        private async Task<UserSession> GetSessionById(Guid sessionId)
-        {
-            var session = await _context.UserSessions.FirstOrDefaultAsync(s => s.Id == sessionId && s.IsActive);
-            if (session == null)
-            {
-                throw new SessionNotFoundException();
-            }
-
-            return session;
-        }
+        
 
         private bool IsEmail(string str)
         {
