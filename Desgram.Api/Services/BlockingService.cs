@@ -16,11 +16,19 @@ namespace Desgram.Api.Services
     {
         private readonly ApplicationContext _context;
         private readonly IMapper _mapper;
+        private readonly ISubscriptionService _subscriptionService;
+        private readonly ILikeService _likeService;
+        private readonly ICommentService _commentService;
 
-        public BlockingService(ApplicationContext context,IMapper mapper)
+        public BlockingService(ApplicationContext context,IMapper mapper
+            ,ISubscriptionService subscriptionService,ILikeService likeService
+            ,ICommentService commentService)
         {
             _context = context;
             _mapper = mapper;
+            _subscriptionService = subscriptionService;
+            _likeService = likeService;
+            _commentService = commentService;
         }
 
 
@@ -50,49 +58,9 @@ namespace Desgram.Api.Services
 
             await _context.BlockingUsers.AddAsync(blockingUser);
 
-            #region Удаление комментариев заблокираванного пользователя с постов 
-
-            var blockingComments = await _context.Posts
-                .Where(p => p.UserId == requestorId)
-                .SelectMany(p => p.Comments)
-                .Where(c => c.UserId == userId)
-                .ToListAsync();
-
-            foreach (var comment in blockingComments)
-            {
-                comment.DeletedDate = DateTimeOffset.Now.UtcDateTime;
-            }
-
-            #endregion
-
-            #region Удаление лайков заблокираванного пользователя с постов
-
-            var blockingLikesPosts = await _context.Posts
-                .Where(p => p.UserId == requestorId)
-                .SelectMany(p => p.Likes)
-                .Where(l => l.UserId == userId)
-                .ToListAsync();
-
-            foreach (var like in blockingLikesPosts)
-            {
-                like.DeletedDate = DateTimeOffset.Now.UtcDateTime;
-            }
-
-            #endregion
-
-            #region Удаление взаимной подписки при наличии
-
-            var subscriptions = await _context.UserSubscriptions
-                .Where(s => (s.ContentMakerId == requestorId && s.FollowerId == userId)
-                            || (s.ContentMakerId == userId && s.FollowerId == requestorId))
-                .ToListAsync();
-
-            foreach (var subscription in subscriptions)
-            {
-                subscription.DeletedDate = DateTimeOffset.Now.UtcDateTime;
-            }
-
-            #endregion
+            await _commentService.DeleteAllCommentsFromUserAsync(userId, requestorId);
+            await _likeService.DeleteAllLikesPostFromUserAsync(userId, requestorId);
+            await _subscriptionService.DeleteMutualSubscriptionAsync(userId, requestorId);
 
 
             await _context.SaveChangesAsync();

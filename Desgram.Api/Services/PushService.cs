@@ -29,8 +29,8 @@ namespace Desgram.Api.Services
             session.PushToken = null;
             await _context.SaveChangesAsync();
         }
-
-        public async Task SendPushAsync(PushModel model, Guid userId)
+        
+        public async Task SendPushAsync(IPushModel model, Guid userId)
         {
             var pushTokens =(await _context.Users.Where(u => u.Id == userId)
                 .SelectMany(u => u.Sessions)

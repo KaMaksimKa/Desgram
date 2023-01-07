@@ -21,15 +21,17 @@ namespace Desgram.Api.Services
         private readonly ApplicationContext _context;
         private readonly IAttachService _attachService;
         private readonly IConfirmService _confirmService;
+        private readonly ICustomMapperService _customMapperService;
 
 
         public UserService(IMapper mapper,ApplicationContext context,
-            IAttachService attachService,IConfirmService confirmService)
+            IAttachService attachService,IConfirmService confirmService,ICustomMapperService customMapperService)
         {
             _mapper = mapper;
             _context = context;
             _attachService = attachService;
             _confirmService = confirmService;
+            _customMapperService = customMapperService;
         }
 
         public async Task TryCreateUserAsync(TryCreateUserModel createUser)
@@ -80,6 +82,23 @@ namespace Desgram.Api.Services
             await _context.SaveChangesAsync();
         }
 
+        public async Task DeleteAvatarAsync(Guid requestorId)
+        {
+
+            var user = await GetUserWithAvatarsByIdAsync(requestorId);
+
+            if (user.Avatars.FirstOrDefault(a => a.DeletedDate == null) is { } oldAvatar)
+            {
+                oldAvatar.DeletedDate = DateTimeOffset.Now.UtcDateTime;
+            }
+            else
+            {
+                throw new AvatarNotFoundException();
+            }
+
+            await _context.SaveChangesAsync();
+        }
+
         public async Task UpdateProfileAsync(ProfileModel model, Guid requestorId)
         {
             var user = await _context.Users.GetUserByIdAsync(requestorId);
@@ -118,23 +137,50 @@ namespace Desgram.Api.Services
 
             if (!HashHelper.Verify(model.OldPassword, user.PasswordHash))
             {
-                throw new InvalidPasswordException();
+                throw new BadRequestException()
+                {
+                    Errors =
+                    {
+                        [nameof(model.OldPassword)] = new List<string>()
+                        {
+                            "Неверный пароль"
+                        }
+                    }
+                };
             }
 
             user.PasswordHash = HashHelper.GetHash(model.NewPassword);
 
             await _context.SaveChangesAsync();
-
         }
 
         public async Task ChangeUserNameAsync(ChangeUserNameModel model, Guid requestorId)
         {
             var user = await _context.Users.GetUserByIdAsync(requestorId);
 
+            if (user.Name.ToLower() == model.NewName.ToLower())
+            {
+                throw new BadRequestException(new Dictionary<string, List<string>>()
+                {
+                    [nameof(model.NewName)] = new List<string>()
+                    {
+                        "Нельзя сменить имя пользователя на текущие"
+                    }
+                });
+            }
+
             if (!(await IsUserNameFree(model.NewName)))
             {
-                throw new UserNameIsBusyException();
+                throw new BadRequestException(new Dictionary<string, List<string>>()
+                {
+                    [nameof(model.NewName)] = new List<string>()
+                    {
+                        $"Имя пользователя {model.NewName} занято."
+                    }
+                });
             }
+          
+
 
             user.Name = model.NewName;
 
@@ -172,7 +218,7 @@ namespace Desgram.Api.Services
                 {
                     [nameof(newEmail)] = new List<string>()
                     {
-                        $"email {newEmail} занят."
+                        $"Email {newEmail} занят."
                     }
                 });
             }
@@ -194,24 +240,15 @@ namespace Desgram.Api.Services
 
         public async Task<UserModel> GetUserByIdAsync(Guid userId,Guid requestorId)
         {
+            var users = _context.Users.AsNoTracking()
+                .Where(u => u.Id == userId);
 
-            var user = await _context.Users.AsNoTracking()
-                .Where(u => u.Id == userId)
-                .ProjectToByRequestorId<UserModel>(_mapper.ConfigurationProvider,requestorId)
-                .FirstOrDefaultAsync();
+            var user = (await _customMapperService.ToUserModelsList(users, requestorId)).FirstOrDefault();
 
-            
             if (user == null)
             {
                 throw new UserNotFoundException();
             }
-
-
-            if (user.HasBlockedViewer)
-            {
-                throw new AccessActionException();
-            }
-
 
             return _mapper.Map<UserModel>(user);
         }
@@ -281,15 +318,12 @@ namespace Desgram.Api.Services
 
         private async Task<bool> IsEmailFree(string email)
         {
-            return !(await _context.Users.AnyAsync(u => u.Email.ToLower() == email.ToLower()))
-                   && !(await _context.UnconfirmedUsers.AnyAsync(u => u.Email.ToLower() == email.ToLower()))
-                   && !(await _context.UnconfirmedEmails.AnyAsync(e => e.Email.ToLower() == email.ToLower()));
+            return !await _context.Users.AnyAsync(u => u.Email.ToLower() == email.ToLower());
         }
 
         private async Task<bool> IsUserNameFree(string username)
         {
-            return !(await _context.Users.AnyAsync(u => u.Name.ToLower() == username.ToLower()))
-                   && !(await _context.UnconfirmedUsers.AnyAsync(u => u.Name.ToLower() == username.ToLower()));
+            return !await _context.Users.AnyAsync(u => u.Name.ToLower() == username.ToLower());
         }
 
 

@@ -15,11 +15,15 @@ namespace Desgram.Api.Services
     {
         private readonly ApplicationContext _context;
         private readonly IMapper _mapper;
+        private readonly INotificationService _notificationService;
+        private readonly ICustomMapperService _customMapperService;
 
-        public CommentService(ApplicationContext context,IMapper mapper)
+        public CommentService(ApplicationContext context,IMapper mapper,INotificationService notificationService, ICustomMapperService customMapperService)
         {
             _context = context;
             _mapper = mapper;
+            _notificationService = notificationService;
+            _customMapperService = customMapperService;
         }
 
         public async Task<CommentModel> AddCommentAsync(CreateCommentModel model, Guid requestorId)
@@ -43,20 +47,25 @@ namespace Desgram.Api.Services
                 DeletedDate = null
             };
 
-            await _context.Comments.AddAsync(comment);
+            var commentEntity = (await _context.Comments.AddAsync(comment)).Entity;
             await _context.SaveChangesAsync();
 
+            if (commentEntity.UserId != post.UserId)
+            {
+                await _notificationService.CreateCommentNotificationAsync(commentEntity);
+            }
 
-            var commentModel = await _context.Comments.AsNoTracking()
-                .ProjectToByRequestorId<CommentModel>(_mapper.ConfigurationProvider,requestorId)
-                .FirstOrDefaultAsync(c => c.Id == comment.Id);
+            var comments = _context.Comments.AsNoTracking()
+                .Where(c => c.Id == comment.Id);
+
+            var commentModel = (await _customMapperService.ToCommentModelsList(comments, requestorId)).FirstOrDefault(); 
 
             if (commentModel == null)
             {
                 throw new CommentNotFoundException();
             }
 
-            return _mapper.Map<CommentModel>(commentModel);
+            return commentModel;
         }
 
         public async Task DeleteCommentAsync(Guid commentId, Guid requestorId)
@@ -72,18 +81,23 @@ namespace Desgram.Api.Services
             comment.DeletedDate = DateTimeOffset.Now.UtcDateTime;
 
             await _context.SaveChangesAsync();
+
+            if (comment.UserId != post.UserId)
+            {
+                await _notificationService.DeleteCommentNotificationAsync(comment.Id);
+            }
+
+         
         }
 
         public async Task<List<CommentModel>> GetCommentsAsync(CommentRequestModel model, Guid requestorId)
         {
-            var comments = await _context.Comments.AsNoTracking()
+            var comments =  _context.Comments.AsNoTracking()
                 .Where(c => c.PostId == model.PostId && c.DeletedDate == null)
                 .OrderByDescending(p => p.CreatedDate)
-                .Skip(model.Skip).Take(model.Take)
-                .ProjectToByRequestorId<CommentModel>(_mapper.ConfigurationProvider,requestorId)
-                .ToListAsync();
+                .Skip(model.Skip).Take(model.Take);
 
-            return comments.Select(c=>_mapper.Map<CommentModel>(c)).ToList();
+            return await _customMapperService.ToCommentModelsList(comments, requestorId);
         }
 
         public async Task UpdateCommentAsync(UpdateCommentModel model, Guid requestorId)
@@ -99,6 +113,27 @@ namespace Desgram.Api.Services
             comment.UpdatedDate = DateTimeOffset.Now.UtcDateTime;
 
             await _context.SaveChangesAsync();
+        }
+
+        public async Task DeleteAllCommentsFromUserAsync(Guid userId, Guid requestorId)
+        {
+            var blockingComments = await _context.Posts
+                .Where(p => p.UserId == requestorId)
+                .SelectMany(p => p.Comments)
+                .Where(c => c.UserId == userId && c.DeletedDate == null)
+                .ToListAsync();
+
+            foreach (var comment in blockingComments)
+            {
+                comment.DeletedDate = DateTimeOffset.Now.UtcDateTime;
+            }
+
+            await _context.SaveChangesAsync();
+
+            foreach (var comment in blockingComments)
+            {
+                await _notificationService.DeleteCommentNotificationAsync(comment.Id);
+            }
         }
     }
 }

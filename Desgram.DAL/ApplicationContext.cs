@@ -18,13 +18,12 @@ namespace Desgram.DAL
         public DbSet<HashTag> HashTags { get; init; } = null!;
         public DbSet<UserSubscription> UserSubscriptions { get; init; } = null!;
         public DbSet<BlockingUser> BlockingUsers { get; init; } = null!;
-        public DbSet<UnconfirmedUser> UnconfirmedUsers { get; init; } = null!;
-        public DbSet<UnconfirmedEmail> UnconfirmedEmails { get; init; } = null!;
         public DbSet<ApplicationRole> ApplicationRoles { get; init; } = null!;
         public DbSet<PostImageContent> PostImageContents { get; init; } = null!;
         public DbSet<Image> Images { get; init; } = null!;
         public DbSet<ImageContent> ImageContents { get; init; } = null!;
         public DbSet<EmailCode> EmailCodes { get; init; } = null!;
+        public DbSet<Notification> Notifications { get; init; } = null!;
 
         public ApplicationContext(DbContextOptions<ApplicationContext> options) :base(options) 
         {
@@ -53,6 +52,8 @@ namespace Desgram.DAL
 
             modelBuilder.Entity<User>().HasMany(u => u.BlockedUsers)
                 .WithOne(b => b.User);
+            modelBuilder.Entity<User>().HasMany(u => u.UsersBlockedMe)
+                .WithOne(b => b.Blocked);
 
         }
     }

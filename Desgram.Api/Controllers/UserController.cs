@@ -41,11 +41,6 @@ namespace Desgram.Api.Controllers
             await _userService.SendSingUpCodeAsync(email);
 
 
-
-
-
-
-
         [HttpGet]
         public async Task<UserModel> GetCurrentUser() =>
             await _userService.GetUserByIdAsync(User.GetUserId(), User.GetUserId());
@@ -75,6 +70,10 @@ namespace Desgram.Api.Controllers
             await _userService.AddAvatarAsync(model, User.GetUserId());
 
         [HttpPost]
+        public async Task DeleteAvatar() =>
+            await _userService.DeleteAvatarAsync(User.GetUserId());
+
+        [HttpPost]
         public async Task UpdateProfile(ProfileModel model) =>
            await  _userService.UpdateProfileAsync(model, User.GetUserId());
 
@@ -99,7 +98,7 @@ namespace Desgram.Api.Controllers
             await _userService.TryChangeEmailAsync(newEmail, User.GetUserId());
 
         [HttpPost]
-        public async Task SendChangeEmailCode(string newEmail) =>
+        public async Task<GuidIdModel> SendChangeEmailCode(string newEmail) =>
             await _userService.SendChangeEmailCodeAsync(newEmail, User.GetUserId());
 
         [HttpPost]

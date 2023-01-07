@@ -1,7 +1,6 @@
 ﻿using Desgram.Api.Config;
 using Desgram.Api.Models.Push;
 using Desgram.Api.Services.Interfaces;
-using Desgram.DAL;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 using PushSharp.Common;
@@ -23,7 +22,7 @@ namespace Desgram.Api.Services
             _config = config.Value.Google;
         }
 
-        public List<string> SendNotification(List<string> pushTokens, PushModel model)
+        public List<string> SendNotification(List<string> pushTokens, IPushModel model)
         {
             _messages.Clear();
 
@@ -44,6 +43,7 @@ namespace Desgram.Api.Services
                 Data = jdata,
                 Notification = CreateMessage(model.Alert),
                 ContentAvailable = jdata["data"] != null,
+                
             };
             gcmBroker.QueueNotification(notify);
             gcmBroker.Stop();
@@ -65,11 +65,14 @@ namespace Desgram.Api.Services
 
         }
 
-        private JObject CreateMessage(PushModel.AlertModel alert)
+        private JObject CreateMessage(AlertModel alert)
         {
             var jNotify = new JObject();
             if (!string.IsNullOrWhiteSpace(alert.Title))
+            {
                 jNotify["title"] = alert.Title;
+            }
+               
             if (!string.IsNullOrWhiteSpace(alert.Body))
             {
                 jNotify["body"] = alert.Body;

@@ -22,14 +22,16 @@ namespace Desgram.Api.Services
     {
         private readonly ApplicationContext _context;
         private readonly IRoleService _roleService;
+        private readonly IPushService _pushService;
 
         private readonly AuthConfig _authConfig;
 
         public AuthService(ApplicationContext context, IOptions<AuthConfig> options,
-            IRoleService roleService)
+            IRoleService roleService,IPushService pushService)
         {
             _context = context;
             _roleService = roleService;
+            _pushService = pushService;
             _authConfig = options.Value;
         }
 
@@ -89,8 +91,7 @@ namespace Desgram.Api.Services
                 if (Guid.TryParse(refreshIdStr, out var refreshId))
                 {
                     var userSession = await GetSessionByRefreshIdAsync(refreshId);
-                    userSession.PushToken = null;
-                    await _context.SaveChangesAsync();
+                    await _pushService.UnsubscribePushAsync(userSession.Id);
                 }
                 throw new InvalidRefreshTokenException();
             }

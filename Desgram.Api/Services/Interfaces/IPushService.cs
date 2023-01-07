@@ -6,6 +6,6 @@ namespace Desgram.Api.Services.Interfaces
     {
         public Task SubscribePushAsync(PushTokenModel model,Guid sessionId);
         public Task UnsubscribePushAsync(Guid sessionId);
-        public Task SendPushAsync(PushModel model, Guid userId);
+        public Task SendPushAsync(IPushModel model, Guid userId);
     }
 }

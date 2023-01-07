@@ -8,5 +8,6 @@ namespace Desgram.Api.Services.Interfaces
         public Task DeleteCommentAsync(Guid commentId, Guid requestorId);
         public Task<List<CommentModel>> GetCommentsAsync(CommentRequestModel model, Guid requestorId);
         public Task UpdateCommentAsync(UpdateCommentModel model, Guid requestorId);
+        public Task DeleteAllCommentsFromUserAsync(Guid userId,Guid requestorId);
     }
 }

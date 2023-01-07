@@ -99,6 +99,8 @@ builder.Services.AddScoped<IConfirmService, ConfirmService>();
 builder.Services.AddScoped<AttachModelMapperAction>();
 builder.Services.AddScoped<IPushService, PushService>();
 builder.Services.AddScoped<IGooglePushService, GooglePushService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<ICustomMapperService,CustomMapperService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
     {

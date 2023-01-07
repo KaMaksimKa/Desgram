@@ -11,6 +11,7 @@ namespace Desgram.Api.Services.Interfaces
         public Task<GuidIdModel> SendSingUpCodeAsync(string email);
         public Task CreateUserAsync(CreateUserModel model);
         public Task AddAvatarAsync(MetadataModel model,Guid requestorId);
+        public Task DeleteAvatarAsync(Guid requestorId);
         public Task UpdateProfileAsync(ProfileModel model,Guid requestorId);
         public Task UpdateBirthdayAsync(UpdateBirthdayModel model, Guid requestorId);
         public Task<PersonalInformationModel> GetPersonalInformationAsync(Guid requestorId);

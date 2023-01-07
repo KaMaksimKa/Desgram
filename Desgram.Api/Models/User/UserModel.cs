@@ -1,4 +1,5 @@
 ﻿using Desgram.Api.Models.Attach;
+using Desgram.Api.Models.Post;
 
 namespace Desgram.Api.Models.User
 {
@@ -17,6 +18,7 @@ namespace Desgram.Api.Models.User
         public bool HasRequestedViewer { get; set; }
         public bool FollowsViewer { get; set; }
         public bool HasBlockedViewer { get; set; }
+        public bool BlockedByViewer { get; set; }
 
 
 

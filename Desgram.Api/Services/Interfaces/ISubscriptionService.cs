@@ -33,5 +33,6 @@ namespace Desgram.Api.Services.Interfaces
         public Task<List<PartialUserModel>> GetUserFollowingAsync(UserFollowingRequestModel model,Guid requestorId);
         public Task<List<PartialUserModel>> GetUserFollowersAsync(UserFollowersRequestModel model, Guid requestorId);
 
+        public Task DeleteMutualSubscriptionAsync(Guid userId, Guid requestorId);
     }
 }

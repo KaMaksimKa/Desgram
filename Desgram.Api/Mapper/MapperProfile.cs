@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Desgram.Api.Models.Attach;
 using Desgram.Api.Models.Comment;
+using Desgram.Api.Models.Notification;
 using Desgram.Api.Models.Post;
 using Desgram.Api.Models.Role;
 using Desgram.Api.Models.User;
@@ -12,7 +13,6 @@ namespace Desgram.Api.Mapper
 {
     public class MapperProfile : Profile
     {
-        public static Guid RequestorId { get; set; }
         public MapperProfile()
         {
             CreateMap<TryCreateUserModel, User>()
@@ -22,24 +22,6 @@ namespace Desgram.Api.Mapper
                 .ForMember(d=>d.Name,m=>m.MapFrom(s=>s.UserName));
             
 
-            CreateMap<User, UserModel>()
-                .ForMember(d => d.Avatar, m => m.MapFrom(
-                    s => s.Avatars.FirstOrDefault(a => a.DeletedDate == null)))
-                .ForMember(d => d.AmountFollowers, m => m.MapFrom(
-                    s => s.Followers.Count(sub => sub.DeletedDate == null && sub.IsApproved)))
-                .ForMember(d => d.AmountFollowing, m => m.MapFrom(
-                    s => s.Following.Count(sub => sub.DeletedDate == null && sub.IsApproved)))
-                .ForMember(d => d.AmountPosts, m => m.MapFrom(
-                    s => s.Posts.Count(sub => sub.DeletedDate == null)))
-                .ForMember(d=>d.FollowedByViewer,m=>m.MapFrom(d=> d.Followers
-                    .Any(f => f.DeletedDate == null && f.FollowerId == RequestorId && f.IsApproved)))
-                .ForMember(d => d.FollowsViewer, m => m.MapFrom(d => d.Following
-                    .Any(f => f.DeletedDate == null && f.ContentMakerId == RequestorId && f.IsApproved)))
-                .ForMember(d => d.HasRequestedViewer, m => m.MapFrom(d => d.Followers
-                    .Any(f => f.DeletedDate == null && f.FollowerId == RequestorId && !f.IsApproved)))
-                .ForMember(d => d.HasBlockedViewer, m => m.MapFrom(d => d.BlockedUsers
-                    .Any(f => f.DeletedDate == null && f.BlockedId == RequestorId)))
-                ;
             CreateMap<UserModel, UserModel>();
 
 
@@ -64,24 +46,13 @@ namespace Desgram.Api.Mapper
             CreateMap<Avatar, ImageContentModel>();
             CreateMap<ImageContentModel, ImageContentModel>();
 
-            CreateMap<Post, PostModel>()
-                .ForMember(d => d.User, m => m.MapFrom(s => s.User))
-                .ForMember(d => d.ImageContents, m => m.MapFrom(
-                        s => s.ImagePostContents))
-                .ForMember(d => d.AmountComments, m => m.MapFrom<int?>(
-                    s => !s.IsCommentsEnabled ? null : s.Comments.Count(c => c.DeletedDate == null)))
-                .ForMember(d => d.AmountLikes, m => m.MapFrom<int?>(
-                    s => !s.IsLikesVisible ? null : s.Likes.Count(l => l.DeletedDate == null)))
-                .ForMember(d => d.HasLiked, m => m.MapFrom(s => s.Likes.Any(l => l.DeletedDate == null && l.UserId == RequestorId)))
-                .ForMember(d => d.HasEdit, m => m.MapFrom(s => s.UpdatedDate != null));
-                
             CreateMap<PostModel, PostModel>();
 
-            CreateMap<Comment, CommentModel>()
-                .ForMember(d=>d.User,m=>m.MapFrom(s=>s.User))
-                .ForMember(d => d.AmountLikes, m => m.MapFrom(s => s.Likes.Count(l => l.DeletedDate == null)))
-                .ForMember(d => d.HasEdit, m => m.MapFrom(s => s.UpdatedDate != null))
-                .ForMember(d=>d.HasLiked,m=>m.MapFrom(s=>s.Likes.Any(l=>l.DeletedDate==null && l.UserId == RequestorId)));
+            CreateMap<Post, PartialPostModel>()
+                .ForMember(d => d.PreviewImage, m => m.MapFrom<Image?>(s => s.ImagePostContents.First(a => a.DeletedDate == null)
+                    .ImageCandidates.First(i => i.Width == ImageWidths.Widths.Min())));
+            CreateMap<PartialPostModel, PartialPostModel>();
+
             CreateMap<CommentModel, CommentModel>();
 
 
@@ -90,6 +61,30 @@ namespace Desgram.Api.Mapper
             CreateMap<HashTag,HashtagModel>()
                 .ForMember(d =>d.Hashtag,m=>m.MapFrom(s=>s.Title))
                 .ForMember(d=>d.AmountPosts,m=>m.MapFrom(s=>s.Posts.Count(p => p.DeletedDate==null)));
+
+            CreateMap<LikePost?, LikePostNotificationModel?>();
+            CreateMap<LikePostNotificationModel?, LikePostNotificationModel?>();
+
+            CreateMap<LikeComment, LikeCommentNotificationModel>()
+                .ForMember(d=>d.Post,m=>m.MapFrom(s=>s.Comment.Post))
+                .ForMember(d=>d.Comment,m=>m.MapFrom(s=>s.Comment.Content));
+            CreateMap<LikeCommentNotificationModel, LikeCommentNotificationModel>();
+
+            CreateMap<Comment, CommentNotificationModel>();
+            CreateMap<CommentNotificationModel, CommentNotificationModel>();
+
+            CreateMap<UserSubscription, SubscriptionNotificationModel>()
+                .ForMember(d=>d.User,m=>m.MapFrom(s=>s.Follower));
+            CreateMap<SubscriptionNotificationModel, SubscriptionNotificationModel>();
+
+            /*CreateMap<Notification, NotificationModel>()
+                .ForMember(d=>d.LikePost,m=>m.MapFrom(s=>s.LikesPost.FirstOrDefault()))
+                .ForMember(d => d.LikeComment, m => m.MapFrom(s => s.LikesComment.FirstOrDefault()))
+                .ForMember(d => d.Comment, m => m.MapFrom(s => s.Comments.FirstOrDefault()))
+                .ForMember(d => d.Subscription, m => m.MapFrom(s => s.Subscriptions.FirstOrDefault()));
+            
+            */
+            CreateMap<NotificationModel, NotificationModel>();
 
 
         }

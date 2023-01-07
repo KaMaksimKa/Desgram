@@ -17,8 +17,10 @@
         public virtual ICollection<UserSubscription> Followers { get; set; } = null!;
         public virtual ICollection<UserSession> Sessions { get; set; } = null!;
         public virtual ICollection<BlockingUser> BlockedUsers { get; set; } = null!;
+        public virtual ICollection<BlockingUser> UsersBlockedMe { get; set; } = null!;
         public virtual ICollection<Post> Posts { get; set; } = null!;
         public virtual ICollection<ApplicationRole> Roles { get; set; } = null!;
+        public virtual ICollection<Notification> Notifications { get; set; } = null!;
 
     }
 }

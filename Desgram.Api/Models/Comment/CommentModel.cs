@@ -1,4 +1,5 @@
-﻿using Desgram.Api.Models.User;
+﻿using Desgram.Api.Models.Post;
+using Desgram.Api.Models.User;
 using Desgram.DAL.Entities;
 
 namespace Desgram.Api.Models.Comment

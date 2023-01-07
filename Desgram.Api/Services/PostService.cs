@@ -6,6 +6,7 @@ using Desgram.Api.Models.Post;
 using Desgram.Api.Services.Interfaces;
 using Desgram.DAL;
 using Desgram.DAL.Entities;
+using Desgram.SharedKernel.Exceptions.BadRequestExceptions;
 using Desgram.SharedKernel.Exceptions.ForbiddenExceptions;
 using Desgram.SharedKernel.Exceptions.NotFoundExceptions;
 using Microsoft.EntityFrameworkCore;
@@ -18,17 +19,29 @@ namespace Desgram.Api.Services
         private readonly ApplicationContext _context;
         private readonly IAttachService _attachService;
         private readonly IMapper _mapper;
+        private readonly ICustomMapperService _customMapperService;
 
         public PostService(ApplicationContext context,IAttachService attachService,
-            IMapper mapper)
+            IMapper mapper,ICustomMapperService customMapperService)
         {
             _context = context;
             _attachService = attachService;
             _mapper = mapper;
+            _customMapperService = customMapperService;
         }
         
         public async Task CreatePostAsync(CreatePostModel model, Guid requestorId)
         {
+            if (model.MetadataModels.Count == 0)
+            {
+                throw new BadRequestException()
+                {
+                    Errors =
+                    {
+                        [nameof(model.MetadataModels)] = new List<string>(){ "metadataModels не может быть пустым списком" }
+                    }
+                };
+            }
             var user = await _context.Users.GetUserByIdAsync(requestorId);
             
             var hashTags = await GetHashTags(model.Description);
@@ -151,63 +164,59 @@ namespace Desgram.Api.Services
 
         public async Task<PostModel> GetPostByIdAsync(Guid postId, Guid requestorId)
         {
-            var post = await _context.Posts.AsNoTracking()
+            var posts = _context.Posts.AsNoTracking()
                 .Where(p => p.DeletedDate == null && p.Id == postId && (!p.User.IsPrivate || p.User.Followers.Any(u =>
-                                                      u.FollowerId == requestorId && u.DeletedDate == null))
-                                                  && !p.User.BlockedUsers.Any(u =>
-                                                      u.BlockedId == requestorId && u.DeletedDate == null))
-                .ProjectTo<PostModel>(_mapper.ConfigurationProvider)
-                .FirstOrDefaultAsync();
+                                u.FollowerId == requestorId && u.DeletedDate == null))
+                            && !p.User.BlockedUsers.Any(u =>
+                                u.BlockedId == requestorId && u.DeletedDate == null));
+            var post = (await _customMapperService.ToPostModelsList(posts, requestorId)).FirstOrDefault();
 
             if (post == null)
             {
                 throw new PostNotFoundException();
             }
 
-            return _mapper.Map<PostModel>(post);
+            return post;
         }
 
         public async Task<List<PostModel>> GetAllPostsAsync(SkipTakeModel model, Guid requestorId)
         {
-            var posts = await _context.Posts.AsNoTracking()
+            var posts = _context.Posts.AsNoTracking()
                 .Where(p => p.DeletedDate == null && !p.User.IsPrivate
-                            && !p.User.BlockedUsers.Any(u => u.BlockedId == requestorId && u.DeletedDate == null))
+                                                  && !p.User.BlockedUsers.Any(u =>
+                                                      u.BlockedId == requestorId && u.DeletedDate == null))
                 .OrderByDescending(p => p.CreatedDate)
-                .Skip(model.Skip).Take(model.Take)
-                .ProjectToByRequestorId<PostModel>(_mapper.ConfigurationProvider, requestorId)
-                .ToListAsync();
+                .Skip(model.Skip).Take(model.Take);
 
-            return posts.Select(p => _mapper.Map<PostModel>(p)).ToList();
+            return await _customMapperService.ToPostModelsList(posts, requestorId);
         }
+
 
         public async Task<List<PostModel>> GetPostByHashTagAsync(PostByHashtagRequestModel model,Guid requestorId)
         {
-            var posts = await _context.Posts.AsNoTracking()
-                .Where(p => p.DeletedDate == null && !p.User.IsPrivate 
-                            && !p.User.BlockedUsers.Any(u=>u.BlockedId == requestorId && u.DeletedDate == null))
-                .Where(p => p.HashTags.Any(tag => tag.Title == model.Hashtag) )
+            var posts =  _context.Posts.AsNoTracking()
+                .Where(p => p.DeletedDate == null && !p.User.IsPrivate
+                                                  && !p.User.BlockedUsers.Any(u =>
+                                                      u.BlockedId == requestorId && u.DeletedDate == null))
+                .Where(p => p.HashTags.Any(tag => tag.Title == model.Hashtag))
                 .OrderByDescending(p => p.CreatedDate)
-                .Skip(model.Skip).Take(model.Take)
-                .ProjectToByRequestorId<PostModel>(_mapper.ConfigurationProvider, requestorId)
-                .ToListAsync();
+                .Skip(model.Skip).Take(model.Take);
 
-            return posts.Select(p => _mapper.Map<PostModel>(p)).ToList();
+            return await _customMapperService.ToPostModelsList(posts, requestorId);
         }
 
         public async Task<List<PostModel>> GetSubscriptionsFeedAsync(SkipTakeModel model,Guid requestorId)
         {
 
-            var posts = await _context.UserSubscriptions.AsNoTracking()
-                .Where(s=>s.FollowerId == requestorId && s.DeletedDate == null && s.IsApproved)
-                .Select(s=>s.ContentMaker)
-                .SelectMany(u=>u.Posts)
-                .Where(p=>p.DeletedDate == null)
+            var posts = _context.UserSubscriptions.AsNoTracking()
+                .Where(s => s.FollowerId == requestorId && s.DeletedDate == null && s.IsApproved)
+                .Select(s => s.ContentMaker)
+                .SelectMany(u => u.Posts)
+                .Where(p => p.DeletedDate == null)
                 .OrderByDescending(p => p.CreatedDate)
-                .Skip(model.Skip).Take(model.Take)
-                .ProjectToByRequestorId<PostModel>(_mapper.ConfigurationProvider, requestorId)
-                .ToListAsync();
+                .Skip(model.Skip).Take(model.Take);
 
-            return posts.Select(p => _mapper.Map<PostModel>(p)).ToList();
+            return await _customMapperService.ToPostModelsList(posts, requestorId);
         }
 
         public async Task<List<PostModel>> GetUserPostsAsync(PostByUserIdRequestModel model, Guid requestorId)
@@ -222,16 +231,16 @@ namespace Desgram.Api.Services
                 throw new AccessActionException();
             }
 
-            var posts = await _context.Users.AsNoTracking()
-                .Where(u=>u.Id == model.UserId)
-                .SelectMany(u => u.Posts)
-                .Where(p=>p.DeletedDate == null)
-                .OrderByDescending(p=>p.CreatedDate)
-                .Skip(model.Skip).Take(model.Take)
-                .ProjectToByRequestorId<PostModel>(_mapper.ConfigurationProvider,requestorId)
-                .ToListAsync();
 
-            return posts.Select(p=>_mapper.Map<PostModel>(p)).ToList();
+            var posts =  _context.Users.AsNoTracking()
+                .Where(u => u.Id == model.UserId)
+                .SelectMany(u => u.Posts)
+                .Where(p => p.DeletedDate == null)
+                .OrderByDescending(p => p.CreatedDate)
+                .Skip(model.Skip).Take(model.Take);
+
+            return await _customMapperService.ToPostModelsList(posts, requestorId);
+
         }
 
         public async Task<List<HashtagModel>> SearchHashtagsAsync(SearchHashtagsModel model, Guid requestorId)

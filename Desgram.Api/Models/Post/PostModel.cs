@@ -11,6 +11,7 @@ namespace Desgram.Api.Models.Post
         public int? AmountLikes { get; set; }
         public int? AmountComments { get; set; }
         public bool IsCommentsEnabled { get; set; }
+        public bool IsLikesVisible { get; set; }
         public DateTimeOffset CreatedDate { get; set; }
         public List<ImageContentModel> ImageContents { get; set; } = null!;
         public bool HasLiked { get; set; }

@@ -1,4 +1,5 @@
 ﻿using Desgram.Api.Models.Post;
+using Desgram.DAL.Entities;
 
 namespace Desgram.Api.Services.Interfaces
 {
@@ -8,5 +9,7 @@ namespace Desgram.Api.Services.Interfaces
         public Task<AmountLikesModel> DeleteLikePostAsync(Guid postId, Guid requestorId);
         public Task<int> AddLikeCommentAsync(Guid commentId, Guid requestorId);
         public Task<int> DeleteLikeCommentAsync(Guid commentId, Guid requestorId);
+        public Task DeleteAllLikesPostFromUserAsync(Guid userId, Guid requestorId);
+
     }
 }

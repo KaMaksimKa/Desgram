@@ -231,6 +231,52 @@ namespace Desgram.Api.Migrations
                     b.ToTable("Likes");
                 });
 
+            modelBuilder.Entity("Desgram.DAL.Entities.Notification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CommentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DeletedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("HasViewed")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("LikeCommentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("LikePostId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SubscriptionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CommentId");
+
+                    b.HasIndex("LikeCommentId");
+
+                    b.HasIndex("LikePostId")
+                        .IsUnique();
+
+                    b.HasIndex("SubscriptionId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Notifications");
+                });
+
             modelBuilder.Entity("Desgram.DAL.Entities.Post", b =>
                 {
                     b.Property<Guid>("Id")
@@ -264,69 +310,6 @@ namespace Desgram.Api.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Posts");
-                });
-
-            modelBuilder.Entity("Desgram.DAL.Entities.UnconfirmedEmail", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("CodeHash")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTimeOffset?>("DeletedDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTimeOffset>("ExpiredDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("UnconfirmedEmails");
-                });
-
-            modelBuilder.Entity("Desgram.DAL.Entities.UnconfirmedUser", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("CodeHash")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTimeOffset?>("DeletedDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTimeOffset>("ExpiredDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("PasswordHash")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("UnconfirmedUsers");
                 });
 
             modelBuilder.Entity("Desgram.DAL.Entities.User", b =>
@@ -543,7 +526,7 @@ namespace Desgram.Api.Migrations
             modelBuilder.Entity("Desgram.DAL.Entities.BlockingUser", b =>
                 {
                     b.HasOne("Desgram.DAL.Entities.User", "Blocked")
-                        .WithMany()
+                        .WithMany("UsersBlockedMe")
                         .HasForeignKey("BlockedId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -589,21 +572,45 @@ namespace Desgram.Api.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Desgram.DAL.Entities.Post", b =>
+            modelBuilder.Entity("Desgram.DAL.Entities.Notification", b =>
                 {
+                    b.HasOne("Desgram.DAL.Entities.Comment", "Comment")
+                        .WithMany()
+                        .HasForeignKey("CommentId");
+
+                    b.HasOne("Desgram.DAL.Entities.LikeComment", "LikeComment")
+                        .WithMany()
+                        .HasForeignKey("LikeCommentId");
+
+                    b.HasOne("Desgram.DAL.Entities.LikePost", "LikePost")
+                        .WithOne("Notification")
+                        .HasForeignKey("Desgram.DAL.Entities.Notification", "LikePostId");
+
+                    b.HasOne("Desgram.DAL.Entities.UserSubscription", "Subscription")
+                        .WithMany()
+                        .HasForeignKey("SubscriptionId");
+
                     b.HasOne("Desgram.DAL.Entities.User", "User")
-                        .WithMany("Posts")
+                        .WithMany("Notifications")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.Navigation("Comment");
+
+                    b.Navigation("LikeComment");
+
+                    b.Navigation("LikePost");
+
+                    b.Navigation("Subscription");
+
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Desgram.DAL.Entities.UnconfirmedEmail", b =>
+            modelBuilder.Entity("Desgram.DAL.Entities.Post", b =>
                 {
                     b.HasOne("Desgram.DAL.Entities.User", "User")
-                        .WithMany()
+                        .WithMany("Posts")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -766,9 +773,18 @@ namespace Desgram.Api.Migrations
 
                     b.Navigation("Following");
 
+                    b.Navigation("Notifications");
+
                     b.Navigation("Posts");
 
                     b.Navigation("Sessions");
+
+                    b.Navigation("UsersBlockedMe");
+                });
+
+            modelBuilder.Entity("Desgram.DAL.Entities.LikePost", b =>
+                {
+                    b.Navigation("Notification");
                 });
 #pragma warning restore 612, 618
         }

@@ -14,10 +14,12 @@ namespace Desgram.Api.Services
     public class LikeService:ILikeService
     {
         private readonly ApplicationContext _context;
+        private readonly INotificationService _notificationService;
 
-        public LikeService(ApplicationContext context)
+        public LikeService(ApplicationContext context,INotificationService notificationService)
         {
             _context = context;
+            _notificationService = notificationService;
         }
 
         public async Task<AmountLikesModel> AddLikePostAsync(Guid postId, Guid requestorId)
@@ -40,9 +42,15 @@ namespace Desgram.Api.Services
                 DeletedDate = null
             };
 
-            await _context.LikesPosts.AddAsync(like);
+            var likePost = (await _context.LikesPosts.AddAsync(like)).Entity;
 
             await _context.SaveChangesAsync();
+
+            if (like.UserId != post.UserId)
+            {
+                await _notificationService.CreateLikePostNotificationAsync(likePost);
+            }
+            
 
             return new AmountLikesModel()
             {
@@ -64,6 +72,12 @@ namespace Desgram.Api.Services
             like.DeletedDate = DateTimeOffset.Now.UtcDateTime;
 
             await _context.SaveChangesAsync();
+
+            if (like.UserId != post.UserId)
+            {
+                await _notificationService.DeleteLikePostNotificationAsync(like.Id);
+            }
+            
 
             return new AmountLikesModel()
             {
@@ -92,9 +106,15 @@ namespace Desgram.Api.Services
                 DeletedDate = null
             };
 
-            await _context.LikesComments.AddAsync(like);
+            var likeComment = (await _context.LikesComments.AddAsync(like)).Entity;
 
             await _context.SaveChangesAsync();
+
+            if (like.UserId != comment.UserId)
+            {
+                await _notificationService.CreateLikeCommentNotificationAsync(likeComment);
+            }
+           
 
             return await _context.LikesComments
                 .Where(l => l.DeletedDate == null && l.CommentId == commentId)
@@ -104,14 +124,41 @@ namespace Desgram.Api.Services
         public async Task<int> DeleteLikeCommentAsync(Guid commentId, Guid requestorId)
         {
             var like = await GetLikeCommentAsync(commentId, requestorId);
+            var comment = await _context.Comments.GetCommentByIdAsync(commentId);
 
             like.DeletedDate = DateTimeOffset.Now.UtcDateTime;
 
             await _context.SaveChangesAsync();
 
+            if (like.UserId != comment.UserId)
+            {
+                await _notificationService.DeleteLikeCommentNotificationAsync(like.Id);
+            }
+            
             return await _context.LikesComments
                 .Where(l => l.DeletedDate == null && l.CommentId == commentId)
                 .CountAsync();
+        }
+
+        public async Task DeleteAllLikesPostFromUserAsync(Guid userId, Guid requestorId)
+        {
+            var blockingLikesPosts = await _context.Posts
+                .Where(p => p.UserId == requestorId)
+                .SelectMany(p => p.Likes)
+                .Where(l => l.UserId == userId && l.DeletedDate == null)
+                .ToListAsync();
+
+            foreach (var like in blockingLikesPosts)
+            {
+                like.DeletedDate = DateTimeOffset.Now.UtcDateTime;
+            }
+
+            await _context.SaveChangesAsync();
+
+            foreach (var like in blockingLikesPosts)
+            {
+                await _notificationService.DeleteLikePostNotificationAsync(like.Id);
+            }
         }
 
         private async Task<LikeComment> GetLikeCommentAsync(Guid commentId, Guid userId)
